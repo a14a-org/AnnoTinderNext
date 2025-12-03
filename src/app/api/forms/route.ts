@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { nanoid } from "nanoid";
+
+// GET - List all forms
+export async function GET() {
+  try {
+    const forms = await db.form.findMany({
+      include: {
+        _count: {
+          select: {
+            questions: true,
+            submissions: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(forms);
+  } catch (error) {
+    console.error("Failed to fetch forms:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch forms" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create a new form
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { title, description } = body;
+
+    if (!title) {
+      return NextResponse.json(
+        { error: "Title is required" },
+        { status: 400 }
+      );
+    }
+
+    // Generate unique slug
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .substring(0, 30);
+    const slug = `${baseSlug}-${nanoid(6)}`;
+
+    const form = await db.form.create({
+      data: {
+        title,
+        description,
+        slug,
+        // Create default welcome and thank you screens
+        questions: {
+          create: [
+            {
+              type: "WELCOME_SCREEN",
+              title: `Welcome to ${title}`,
+              description: description || "Please take a moment to fill out this form.",
+              displayOrder: 0,
+            },
+            {
+              type: "THANK_YOU_SCREEN",
+              title: "Thank you!",
+              description: "Your response has been recorded.",
+              displayOrder: 999,
+            },
+          ],
+        },
+      },
+      include: {
+        questions: {
+          orderBy: { displayOrder: "asc" },
+        },
+      },
+    });
+
+    return NextResponse.json(form, { status: 201 });
+  } catch (error) {
+    console.error("Failed to create form:", error);
+    return NextResponse.json(
+      { error: "Failed to create form" },
+      { status: 500 }
+    );
+  }
+}

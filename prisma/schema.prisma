@@ -1,0 +1,229 @@
+// Prisma schema for ChiliForm
+// SQLite for development, easily switch to PostgreSQL by changing provider
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// FORM BUILDER MODELS
+// ============================================================================
+
+model Form {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  description     String?
+  brandColor      String?  @default("#FF5A5F")
+  buttonText      String?  @default("Start")
+  submitText      String?  @default("Submit")
+  isPublished     Boolean  @default(false)
+  allowMultiple   Boolean  @default(true)
+  showProgressBar Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Annotation quota settings
+  articlesPerSession Int    @default(20)
+  sessionTimeoutMins Int    @default(10)
+  quotaSettings      String? // JSON: QuotaSettings - flexible demographic grouping config
+
+  // Dynata panel integration settings
+  dynataEnabled   Boolean @default(false)
+  dynataReturnUrl String? // Base return URL: https://api.dynata.com/respondent/exit
+  dynataBasicCode String? // Project-specific basic code from Dynata
+
+  questions   Question[]
+  submissions FormSubmission[]
+  articles    Article[]
+  sessions    AnnotationSession[]
+
+  @@index([slug])
+  @@index([isPublished])
+  @@map("forms")
+}
+
+model Question {
+  id           String   @id @default(cuid())
+  formId       String
+  type         String   // QuestionType as string for SQLite compatibility
+  title        String
+  description  String?
+  placeholder  String?
+  isRequired   Boolean  @default(false)
+  displayOrder Int      @default(0)
+  settings     String?  // JSON stored as string for SQLite
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  form    Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers Answer[]
+
+  @@index([formId])
+  @@index([displayOrder])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id           String   @id @default(cuid())
+  questionId   String
+  label        String
+  value        String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([displayOrder])
+  @@map("question_options")
+}
+
+model FormSubmission {
+  id          String   @id @default(cuid())
+  formId      String
+  submittedAt DateTime @default(now())
+
+  // Optional metadata
+  ipAddress String?
+  userAgent String?
+  referrer  String?
+
+  // Time tracking
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Link to annotation session (for TEXT_ANNOTATION forms)
+  annotationSessionId String? @unique
+  annotationSession   AnnotationSession? @relation(fields: [annotationSessionId], references: [id])
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([formId])
+  @@index([submittedAt])
+  @@map("form_submissions")
+}
+
+model Answer {
+  id           String @id @default(cuid())
+  submissionId String
+  questionId   String
+
+  // Value stored differently based on question type
+  textValue    String?
+  numberValue  Float?
+  booleanValue Boolean?
+  dateValue    DateTime?
+  jsonValue    String? // JSON arrays stored as string for SQLite
+
+  createdAt DateTime @default(now())
+
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([questionId])
+  @@map("answers")
+}
+
+// ============================================================================
+// ANNOTATION QUOTA SYSTEM
+// ============================================================================
+
+// Articles imported from CSV for annotation tasks
+model Article {
+  id        String @id @default(cuid())
+  formId    String
+  shortId   String // ARTICLE_SHORT_ID from CSV (e.g., "f350ea2")
+  text      String // The article text content
+
+  // Flexible quota tracking (JSON: { [groupName]: count })
+  quotaCounts String @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  form        Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  annotations ArticleAnnotation[]
+
+  @@unique([formId, shortId])
+  @@index([formId])
+  @@map("articles")
+}
+
+// Participant session for annotation tasks
+model AnnotationSession {
+  id     String @id @default(cuid())
+  formId String
+
+  // External integration (Dynata)
+  externalPid String? // Participant ID from Dynata/panel provider
+  returnUrl   String? // Redirect URL for completion/screenout
+
+  // Session token for persistence
+  sessionToken String @unique @default(cuid())
+
+  // Demographics (collected after consent)
+  gender          String? // "man" | "woman" | "other"
+  ethnicity       String? // "Nederlands" | "Surinaams" | etc.
+  ageRange        String? // "18-24" | "25-34" | etc.
+  demographicGroup String? // "caucasian" | "minority" (derived)
+
+  // Assignment
+  assignedArticleIds String? // JSON array of article IDs
+  articlesRequired   Int     @default(20)
+  articlesCompleted  Int     @default(0)
+
+  // Status tracking
+  status      String   @default("started") // started | demographics | annotating | completed | screened_out | expired
+  lastActiveAt DateTime @default(now())
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  form           Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  annotations    ArticleAnnotation[]
+  formSubmission FormSubmission?
+
+  @@index([formId, demographicGroup, status])
+  @@index([sessionToken])
+  @@map("annotation_sessions")
+}
+
+// Individual annotation record
+model ArticleAnnotation {
+  id        String @id @default(cuid())
+  sessionId String
+  articleId String
+
+  // Selection data
+  selectedText  String? // The text that was selected
+  sentenceIndex Int? // Which sentence (0-indexed, if sentence mode)
+  startIndex    Int? // Character start position in original text
+  endIndex      Int? // Character end position in original text
+
+  // Follow-up question response
+  followUpType   String? // "multiple_choice" | "open_text" | "rating_scale"
+  followUpAnswer String? // The answer value
+
+  // Skip tracking
+  skipped Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  session AnnotationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  article Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, articleId]) // One annotation per article per session
+  @@index([sessionId])
+  @@index([articleId])
+  @@map("article_annotations")
+}
