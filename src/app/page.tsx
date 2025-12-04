@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/atoms/Button";
 import {
-  Plus,
-  Loader2,
-  FileText,
-  Eye,
-  MoreHorizontal,
-  Trash2,
-  ExternalLink,
-  Copy,
   BarChart3,
+  Copy,
+  ExternalLink,
+  Eye,
+  FileText,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Trash2,
 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+
+import { Button } from "@/components/ui";
 
 interface Form {
   id: string;
@@ -29,7 +30,7 @@ interface Form {
   };
 }
 
-function CreateFormTrigger({ onTrigger, isLoading }: { onTrigger: () => void; isLoading: boolean }) {
+const CreateFormTrigger = ({ onTrigger, isLoading }: { onTrigger: () => void; isLoading: boolean }) => {
   const searchParams = useSearchParams();
   const createTriggered = useRef(false);
 
@@ -41,9 +42,9 @@ function CreateFormTrigger({ onTrigger, isLoading }: { onTrigger: () => void; is
   }, [searchParams, isLoading, onTrigger]);
 
   return null;
-}
+};
 
-export default function FormsPage() {
+const FormsPage = () => {
   const router = useRouter();
   const [forms, setForms] = useState<Form[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -311,4 +312,6 @@ export default function FormsPage() {
       </main>
     </div>
   );
-}
+};
+
+export default FormsPage;

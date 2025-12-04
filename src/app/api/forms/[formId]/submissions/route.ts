@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
 
 // GET - List all submissions for a form
@@ -48,42 +49,33 @@ export async function GET(
 
     // Transform submissions for easier consumption
     const transformedSubmissions = submissions.map((submission) => {
-      const answerMap: Record<
-        string,
-        {
-          questionId: string;
-          questionTitle: string;
-          questionType: string;
-          value: unknown;
-        }
-      > = {};
-
-      submission.answers.forEach((answer) => {
-        let value: unknown;
-
-        if (answer.textValue !== null) {
-          value = answer.textValue;
-        } else if (answer.numberValue !== null) {
-          value = answer.numberValue;
-        } else if (answer.booleanValue !== null) {
-          value = answer.booleanValue;
-        } else if (answer.dateValue !== null) {
-          value = answer.dateValue;
-        } else if (answer.jsonValue !== null) {
+      // Helper to extract value from answer
+      const extractValue = (answer: typeof submission.answers[0]): unknown => {
+        if (answer.textValue !== null) return answer.textValue;
+        if (answer.numberValue !== null) return answer.numberValue;
+        if (answer.booleanValue !== null) return answer.booleanValue;
+        if (answer.dateValue !== null) return answer.dateValue;
+        if (answer.jsonValue !== null) {
           try {
-            value = JSON.parse(answer.jsonValue);
+            return JSON.parse(answer.jsonValue);
           } catch {
-            value = answer.jsonValue;
+            return answer.jsonValue;
           }
         }
+        return undefined;
+      };
 
-        answerMap[answer.questionId] = {
-          questionId: answer.questionId,
-          questionTitle: answer.question.title,
-          questionType: answer.question.type,
-          value,
-        };
-      });
+      const answerMap = Object.fromEntries(
+        submission.answers.map((answer) => [
+          answer.questionId,
+          {
+            questionId: answer.questionId,
+            questionTitle: answer.question.title,
+            questionType: answer.question.type,
+            value: extractValue(answer),
+          },
+        ])
+      );
 
       return {
         id: submission.id,

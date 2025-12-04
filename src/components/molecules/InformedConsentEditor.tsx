@@ -1,51 +1,26 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/atoms/Input";
-import { Loader2, Check, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import type { InformedConsentSettings } from "@/features/informed-consent";
+
+import { useState } from "react";
+import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+
+import { Input, SectionHeader } from "@/components/ui";
+import { useAutoSave } from "@/hooks";
 import {
-  InformedConsentSettings,
   DEFAULT_CONSENT_SETTINGS,
   generateConsentText,
-} from "@/lib/informed-consent";
+} from "@/features/informed-consent";
 
 interface InformedConsentEditorProps {
   settings: InformedConsentSettings | null;
   onUpdate: (settings: InformedConsentSettings) => void;
 }
 
-// Section header component defined outside to avoid recreation during render
-function SectionHeader({
-  title,
-  section,
-  expanded,
-  onToggle,
-}: {
-  title: string;
-  section: string;
-  expanded: boolean;
-  onToggle: (section: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onToggle(section)}
-      className="flex items-center justify-between w-full py-2 text-sm font-semibold text-obsidian hover:text-chili-coral transition-colors"
-    >
-      {title}
-      {expanded ? (
-        <ChevronUp className="w-4 h-4" />
-      ) : (
-        <ChevronDown className="w-4 h-4" />
-      )}
-    </button>
-  );
-}
-
-export function InformedConsentEditor({
+export const InformedConsentEditor = ({
   settings: initialSettings,
   onUpdate,
-}: InformedConsentEditorProps) {
+}: InformedConsentEditorProps) => {
   // Merge initial settings with defaults to ensure all fields exist
   const [settings, setSettings] = useState<InformedConsentSettings>(() => ({
     ...DEFAULT_CONSENT_SETTINGS,
@@ -61,37 +36,8 @@ export function InformedConsentEditor({
     buttons: false,
     preview: false,
   });
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initialLoadRef = useRef(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      initialLoadRef.current = false;
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (initialLoadRef.current) return;
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      setSaveStatus("saving");
-      onUpdate(settings);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    }, 1000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [settings, onUpdate]);
+  const { saveStatus } = useAutoSave({ value: settings, onSave: onUpdate });
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -492,4 +438,4 @@ export function InformedConsentEditor({
       </div>
     </div>
   );
-}
+};

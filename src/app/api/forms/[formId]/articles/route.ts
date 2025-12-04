@@ -1,16 +1,48 @@
+import type { QuotaSettings } from "@/features/quota";
+
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
 import {
-  QuotaSettings,
   DEFAULT_QUOTA_SETTINGS,
   parseQuotaCounts,
-} from "@/lib/quota-settings";
+} from "@/features/quota";
+
+/**
+ * Parse a single CSV line, handling quoted values
+ */
+const parseCSVLine = (line: string, delimiter: string = ","): string[] => {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+};
 
 /**
  * Parse CSV content into article records
  * Expects columns: text, ARTICLE_SHORT_ID (or shortId)
  */
-function parseCSV(csvContent: string): Array<{ text: string; shortId: string }> {
+const parseCSV = (csvContent: string): Array<{ text: string; shortId: string }> => {
   const lines = csvContent.trim().split("\n");
   if (lines.length < 2) return [];
 
@@ -36,61 +68,29 @@ function parseCSV(csvContent: string): Array<{ text: string; shortId: string }> 
     throw new Error("CSV must have a 'text' or 'tekst' column");
   }
 
-  const articles: Array<{ text: string; shortId: string }> = [];
+  return lines.slice(1)
+    .map((line, index) => {
+      const values = parseCSVLine(line, delimiter);
+      const text = values[textIndex]?.trim();
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i], delimiter);
-    const text = values[textIndex]?.trim();
+      if (!text) return null;
 
-    if (!text) continue;
+      // Use shortId from CSV or generate one
+      const shortId =
+        shortIdIndex !== -1 && values[shortIdIndex]
+          ? values[shortIdIndex].trim()
+          : `article-${index + 1}`;
 
-    // Use shortId from CSV or generate one
-    const shortId =
-      shortIdIndex !== -1 && values[shortIdIndex]
-        ? values[shortIdIndex].trim()
-        : `article-${i}`;
-
-    articles.push({ text, shortId });
-  }
-
-  return articles;
-}
-
-/**
- * Parse a single CSV line, handling quoted values
- */
-function parseCSVLine(line: string, delimiter: string = ","): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === delimiter && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  result.push(current.trim());
-  return result;
-}
+      return { text, shortId };
+    })
+    .filter((article): article is { text: string; shortId: string } => article !== null);
+};
 
 // GET - List articles for a form
-export async function GET(
+export const GET = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
-) {
+) => {
   try {
     const { formId } = await params;
 
@@ -118,11 +118,13 @@ export async function GET(
       ? JSON.parse(form.quotaSettings)
       : DEFAULT_QUOTA_SETTINGS;
 
-    // Build quota targets from settings
-    const quotaTargets: Record<string, number> = {};
-    for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
-      quotaTargets[groupName] = config.target;
-    }
+    // Build quota targets from settings using Object.fromEntries
+    const quotaTargets = Object.fromEntries(
+      Object.entries(quotaSettings.groups).map(([groupName, config]) => [
+        groupName,
+        config.target
+      ])
+    );
 
     // Transform articles to include parsed quotaCounts
     const transformedArticles = articles.map((article) => ({
@@ -143,13 +145,13 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+};
 
 // POST - Import articles from CSV
-export async function POST(
+export const POST = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
-) {
+) => {
   try {
     const { formId } = await params;
     const body = await request.json();
@@ -233,13 +235,13 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+};
 
 // DELETE - Remove all articles for a form
-export async function DELETE(
+export const DELETE = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
-) {
+) => {
   try {
     const { formId } = await params;
 
@@ -258,4 +260,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+};

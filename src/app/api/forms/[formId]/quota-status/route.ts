@@ -1,10 +1,12 @@
+import type { QuotaSettings } from "@/features/quota";
+
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
 import {
-  QuotaSettings,
   DEFAULT_QUOTA_SETTINGS,
   parseQuotaCounts,
-} from "@/lib/quota-settings";
+} from "@/features/quota";
 
 /**
  * GET - Get quota status overview for a form
@@ -58,34 +60,29 @@ export async function GET(
 
     // Calculate stats per group
     const totalArticles = articles.length;
-    const groupStats: Record<string, {
-      target: number;
-      complete: number;
-      totalAnnotations: number;
-    }> = {};
 
-    // Initialize group stats
-    for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
-      groupStats[groupName] = {
-        target: config.target,
-        complete: 0,
-        totalAnnotations: 0,
-      };
-    }
+    // Initialize group stats using Object.fromEntries
+    const initialGroupStats = Object.fromEntries(
+      Object.entries(quotaSettings.groups).map(([groupName, config]) => [
+        groupName,
+        { target: config.target, complete: 0, totalAnnotations: 0 }
+      ])
+    ) as Record<string, { target: number; complete: number; totalAnnotations: number }>;
 
-    // Calculate per-article stats
-    for (const article of articles) {
+    // Calculate per-article stats using reduce
+    const groupStats = articles.reduce((stats, article) => {
       const quotaCounts = parseQuotaCounts(article.quotaCounts);
 
-      for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
+      Object.entries(quotaSettings.groups).forEach(([groupName, config]) => {
         const count = quotaCounts[groupName] || 0;
-        groupStats[groupName].totalAnnotations += count;
-
+        stats[groupName].totalAnnotations += count;
         if (count >= config.target) {
-          groupStats[groupName].complete++;
+          stats[groupName].complete++;
         }
-      }
-    }
+      });
+
+      return stats;
+    }, initialGroupStats);
 
     // Count fully complete articles (all groups met)
     const fullyComplete = articles.filter((article) => {
@@ -109,23 +106,28 @@ export async function GET(
       byDemographic: {} as Record<string, { total: number; completed: number }>,
     };
 
-    // Initialize demographic session stats
-    for (const groupName of Object.keys(quotaSettings.groups)) {
-      sessions.byDemographic[groupName] = { total: 0, completed: 0 };
-    }
+    // Initialize demographic session stats using Object.fromEntries
+    sessions.byDemographic = Object.fromEntries(
+      Object.keys(quotaSettings.groups).map((groupName) => [
+        groupName,
+        { total: 0, completed: 0 }
+      ])
+    );
 
-    for (const stat of sessionStats) {
-      sessions.total += stat._count;
-      sessions.byStatus[stat.status] =
-        (sessions.byStatus[stat.status] || 0) + stat._count;
+    // Aggregate session stats using reduce
+    sessionStats.reduce((acc, stat) => {
+      acc.total += stat._count;
+      acc.byStatus[stat.status] = (acc.byStatus[stat.status] || 0) + stat._count;
 
-      if (stat.demographicGroup && sessions.byDemographic[stat.demographicGroup]) {
-        sessions.byDemographic[stat.demographicGroup].total += stat._count;
+      if (stat.demographicGroup && acc.byDemographic[stat.demographicGroup]) {
+        acc.byDemographic[stat.demographicGroup].total += stat._count;
         if (stat.status === "completed") {
-          sessions.byDemographic[stat.demographicGroup].completed += stat._count;
+          acc.byDemographic[stat.demographicGroup].completed += stat._count;
         }
       }
-    }
+
+      return acc;
+    }, sessions);
 
     // Calculate overall progress
     const totalTargetAnnotations = totalArticles *
@@ -137,27 +139,33 @@ export async function GET(
       ? Math.round((totalActualAnnotations / totalTargetAnnotations) * 100)
       : 0;
 
-    // Build progress per group
-    const progressByGroup: Record<string, number> = {};
-    for (const [groupName, stats] of Object.entries(groupStats)) {
-      progressByGroup[groupName] = totalArticles > 0
-        ? Math.round((stats.complete / totalArticles) * 100)
-        : 0;
-    }
+    // Build progress per group using Object.fromEntries
+    const progressByGroup = Object.fromEntries(
+      Object.entries(groupStats).map(([groupName, stats]) => [
+        groupName,
+        totalArticles > 0 ? Math.round((stats.complete / totalArticles) * 100) : 0
+      ])
+    );
 
-    // Build quota targets
-    const quotaTargets: Record<string, number> = {};
-    for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
-      quotaTargets[groupName] = config.target;
-    }
+    // Build quota targets using Object.fromEntries
+    const quotaTargets = Object.fromEntries(
+      Object.entries(quotaSettings.groups).map(([groupName, config]) => [
+        groupName,
+        config.target
+      ])
+    );
 
-    // Calculate estimated participants
-    const estimatedParticipants: Record<string, number> = { total: 0 };
-    for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
-      const needed = totalArticles * config.target;
-      estimatedParticipants[groupName] = needed;
-      estimatedParticipants.total += needed;
-    }
+    // Calculate estimated participants using reduce
+    const groupParticipants = Object.fromEntries(
+      Object.entries(quotaSettings.groups).map(([groupName, config]) => [
+        groupName,
+        totalArticles * config.target
+      ])
+    );
+    const estimatedParticipants: Record<string, number> = {
+      ...groupParticipants,
+      total: Object.values(groupParticipants).reduce((sum, n) => sum + n, 0)
+    };
 
     const response: Record<string, unknown> = {
       form: {
@@ -186,16 +194,16 @@ export async function GET(
     if (detailed) {
       response.articleDetails = articles.map((a) => {
         const quotaCounts = parseQuotaCounts(a.quotaCounts);
-        const groups: Record<string, { count: number; target: number; complete: boolean }> = {};
-
-        for (const [groupName, config] of Object.entries(quotaSettings.groups)) {
-          const count = quotaCounts[groupName] || 0;
-          groups[groupName] = {
-            count,
-            target: config.target,
-            complete: count >= config.target,
-          };
-        }
+        const groups = Object.fromEntries(
+          Object.entries(quotaSettings.groups).map(([groupName, config]) => {
+            const count = quotaCounts[groupName] || 0;
+            return [groupName, {
+              count,
+              target: config.target,
+              complete: count >= config.target,
+            }];
+          })
+        );
 
         return {
           id: a.id,

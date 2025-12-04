@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/atoms/Button";
+import { Button } from "@/components/ui";
 import {
   ArrowLeft,
   Loader2,
@@ -114,22 +114,19 @@ export default function FormResponsesPage() {
 
     const headers = ["Submission Date", ...data.form.questions.map((q) => q.title)];
     const rows = data.submissions.map((submission) => {
-      const row = [format(new Date(submission.submittedAt), "yyyy-MM-dd HH:mm:ss")];
-      data.form.questions.forEach((question) => {
+      const dateCell = format(new Date(submission.submittedAt), "yyyy-MM-dd HH:mm:ss");
+      const answerCells = data.form.questions.map((question) => {
         const answer = submission.answers[question.id];
-        if (answer) {
-          if (Array.isArray(answer.value)) {
-            row.push(answer.value.join(", "));
-          } else if (typeof answer.value === "boolean") {
-            row.push(answer.value ? "Yes" : "No");
-          } else {
-            row.push(String(answer.value || ""));
-          }
-        } else {
-          row.push("");
+        if (!answer) return "";
+        if (Array.isArray(answer.value)) {
+          return answer.value.join(", ");
         }
+        if (typeof answer.value === "boolean") {
+          return answer.value ? "Yes" : "No";
+        }
+        return String(answer.value || "");
       });
-      return row;
+      return [dateCell, ...answerCells];
     });
 
     const csvContent = [

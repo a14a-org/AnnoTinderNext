@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { ShieldCheck, X, Check } from "lucide-react";
+import type { InformedConsentSettings } from "@/features/informed-consent";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ShieldCheck, X } from "lucide-react";
+
 import {
-  InformedConsentSettings,
   DEFAULT_CONSENT_SETTINGS,
   generateConsentText,
-} from "@/lib/informed-consent";
+} from "@/features/informed-consent";
 
 interface InformedConsentDisplayProps {
   title: string;
@@ -17,14 +19,14 @@ interface InformedConsentDisplayProps {
   onDecline: () => void;
 }
 
-export function InformedConsentDisplay({
+export const InformedConsentDisplay = ({
   title,
   description,
   settings: rawSettings,
   brandColor,
   onAgree,
   onDecline,
-}: InformedConsentDisplayProps) {
+}: InformedConsentDisplayProps) => {
   const settings = rawSettings || DEFAULT_CONSENT_SETTINGS;
   const consentText = generateConsentText(settings);
   const checkboxes = useMemo(
@@ -227,17 +229,17 @@ export function InformedConsentDisplay({
       </div>
     </div>
   );
-}
+};
 
 interface ConsentDeclinedDisplayProps {
   settings: InformedConsentSettings | null;
   brandColor: string;
 }
 
-export function ConsentDeclinedDisplay({
+export const ConsentDeclinedDisplay = ({
   settings: rawSettings,
   brandColor,
-}: ConsentDeclinedDisplayProps) {
+}: ConsentDeclinedDisplayProps) => {
   const settings = rawSettings || DEFAULT_CONSENT_SETTINGS;
 
   return (
@@ -259,4 +261,4 @@ export function ConsentDeclinedDisplay({
       </p>
     </div>
   );
-}
+};

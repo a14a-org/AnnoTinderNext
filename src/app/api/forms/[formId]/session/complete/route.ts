@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
-import { parseQuotaCounts } from "@/lib/quota-settings";
 import { buildDynataRedirectFromForm } from "@/lib/dynata";
+import { parseQuotaCounts } from "@/features/quota";
 
 /**
  * POST - Complete a session and update article quotas
@@ -97,25 +98,27 @@ export async function POST(
     // Use a transaction to ensure consistency
     await db.$transaction(async (tx) => {
       // Increment quota for each assigned article using flexible quotaCounts
-      for (const articleId of assignedIds) {
-        // Get current quota counts
-        const article = await tx.article.findUnique({
-          where: { id: articleId },
-          select: { quotaCounts: true },
-        });
-
-        if (article) {
-          const quotaCounts = parseQuotaCounts(article.quotaCounts);
-          quotaCounts[demographicGroup] = (quotaCounts[demographicGroup] || 0) + 1;
-
-          await tx.article.update({
+      await Promise.all(
+        assignedIds.map(async (articleId) => {
+          // Get current quota counts
+          const article = await tx.article.findUnique({
             where: { id: articleId },
-            data: {
-              quotaCounts: JSON.stringify(quotaCounts),
-            },
+            select: { quotaCounts: true },
           });
-        }
-      }
+
+          if (article) {
+            const quotaCounts = parseQuotaCounts(article.quotaCounts);
+            quotaCounts[demographicGroup] = (quotaCounts[demographicGroup] || 0) + 1;
+
+            await tx.article.update({
+              where: { id: articleId },
+              data: {
+                quotaCounts: JSON.stringify(quotaCounts),
+              },
+            });
+          }
+        })
+      );
 
       // Mark session as completed
       await tx.annotationSession.update({

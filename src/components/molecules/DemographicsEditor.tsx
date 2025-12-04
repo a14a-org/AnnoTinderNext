@@ -1,57 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/atoms/Input";
-import {
-  Loader2,
-  Check,
-  Plus,
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
-import {
-  DemographicsSettings,
-  DEFAULT_DEMOGRAPHICS_SETTINGS,
-  DemographicField,
-} from "@/lib/demographics";
+import type { DemographicField, DemographicsSettings } from "@/features/demographics";
+
+import { useState } from "react";
+import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+
+import { Input, SectionHeader } from "@/components/ui";
+import { useAutoSave } from "@/hooks";
+import { DEFAULT_DEMOGRAPHICS_SETTINGS } from "@/features/demographics";
 
 interface DemographicsEditorProps {
   settings: DemographicsSettings | null;
   onUpdate: (settings: DemographicsSettings) => void;
 }
 
-function SectionHeader({
-  title,
-  section,
-  expanded,
-  onToggle,
-}: {
-  title: string;
-  section: string;
-  expanded: boolean;
-  onToggle: (section: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onToggle(section)}
-      className="flex items-center justify-between w-full py-2 text-sm font-semibold text-obsidian hover:text-chili-coral transition-colors"
-    >
-      {title}
-      {expanded ? (
-        <ChevronUp className="w-4 h-4" />
-      ) : (
-        <ChevronDown className="w-4 h-4" />
-      )}
-    </button>
-  );
-}
-
-export function DemographicsEditor({
+export const DemographicsEditor = ({
   settings: initialSettings,
   onUpdate,
-}: DemographicsEditorProps) {
+}: DemographicsEditorProps) => {
   const [settings, setSettings] = useState<DemographicsSettings>(() => ({
     ...DEFAULT_DEMOGRAPHICS_SETTINGS,
     ...(initialSettings || {}),
@@ -70,39 +36,7 @@ export function DemographicsEditor({
     classification: false,
   });
 
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
-    "idle"
-  );
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initialLoadRef = useRef(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      initialLoadRef.current = false;
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (initialLoadRef.current) return;
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      setSaveStatus("saving");
-      onUpdate(settings);
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    }, 1000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [settings, onUpdate]);
+  const { saveStatus } = useAutoSave({ value: settings, onSave: onUpdate });
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -341,4 +275,4 @@ export function DemographicsEditor({
       </div>
     </div>
   );
-}
+};

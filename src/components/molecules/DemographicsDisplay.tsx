@@ -1,24 +1,27 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import type { DemographicAnswers, DemographicsSettings } from "@/features/demographics";
+
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  DemographicsSettings,
-  DemographicAnswers,
-  validateDemographics,
-} from "@/lib/demographics";
+import { Loader2 } from "lucide-react";
+
+import { validateDemographics } from "@/features/demographics";
 
 interface DemographicsDisplayProps {
   settings: DemographicsSettings;
   brandColor?: string;
   onComplete: (answers: DemographicAnswers) => void;
+  /** Disable interactions while processing */
+  disabled?: boolean;
 }
 
-export function DemographicsDisplay({
+export const DemographicsDisplay = ({
   settings,
   brandColor = "#EF4444",
   onComplete,
-}: DemographicsDisplayProps) {
+  disabled = false,
+}: DemographicsDisplayProps) => {
   const [answers, setAnswers] = useState<DemographicAnswers>({});
   const [currentFieldIndex, setCurrentFieldIndex] = useState(0);
 
@@ -28,6 +31,9 @@ export function DemographicsDisplay({
 
   const handleSelect = useCallback(
     (value: string) => {
+      // Prevent selection while disabled (processing)
+      if (disabled) return;
+
       const newAnswers = {
         ...answers,
         [currentField.id]: value,
@@ -47,14 +53,15 @@ export function DemographicsDisplay({
         }
       }, 300);
     },
-    [answers, currentField, currentFieldIndex, totalFields, settings, onComplete]
+    [answers, currentField, currentFieldIndex, totalFields, settings, onComplete, disabled]
   );
 
   const handleBack = useCallback(() => {
+    if (disabled) return;
     if (currentFieldIndex > 0) {
       setCurrentFieldIndex(currentFieldIndex - 1);
     }
-  }, [currentFieldIndex]);
+  }, [currentFieldIndex, disabled]);
 
   const currentAnswer = answers[currentField?.id];
   const isLastField = currentFieldIndex === totalFields - 1;
@@ -62,6 +69,9 @@ export function DemographicsDisplay({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle if disabled (processing)
+      if (disabled) return;
+
       // Don't handle if user is typing in a text input
       if (e.target instanceof HTMLInputElement) {
         // For text fields, only handle Enter to proceed
@@ -112,10 +122,23 @@ export function DemographicsDisplay({
     handleSelect,
     handleBack,
     onComplete,
+    disabled,
   ]);
 
   if (!currentField) {
     return null;
+  }
+
+  // Show loading state when processing
+  if (disabled) {
+    return (
+      <div className="w-full max-w-xl mx-auto">
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mb-4" />
+          <p className="text-gray-500">Processing your answers...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -282,4 +305,4 @@ export function DemographicsDisplay({
       )}
     </div>
   );
-}
+};

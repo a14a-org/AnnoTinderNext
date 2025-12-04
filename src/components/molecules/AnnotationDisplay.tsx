@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight } from "lucide-react";
-import {
-  TextAnnotationSettings,
+import type {
   Annotation,
   FollowUpQuestion,
-  splitIntoSentences,
-  splitIntoWords,
-} from "@/lib/text-annotation";
+  TextAnnotationSettings,
+} from "@/features/annotation";
+
+import { useCallback, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Check, ChevronRight } from "lucide-react";
+
+import { splitIntoSentences, splitIntoWords } from "@/features/annotation";
 
 interface AnnotationDisplayProps {
   settings: TextAnnotationSettings;
@@ -23,13 +24,13 @@ interface AnnotationDisplayProps {
 
 type Phase = "practice" | "transition" | "main";
 
-export function AnnotationDisplay({
+export const AnnotationDisplay = ({
   settings,
   brandColor = "#EF4444",
   onComplete,
   sessionToken,
   formId,
-}: AnnotationDisplayProps) {
+}: AnnotationDisplayProps) => {
   // Ensure practiceTexts is always an array (may be undefined in older settings)
   const practiceTexts = settings.practiceTexts || [];
   const texts = settings.texts || [];
@@ -66,6 +67,8 @@ export function AnnotationDisplay({
         isRequired: true,
         options: settings.followUp.options,
         placeholder: settings.followUp.placeholder,
+        minRating: settings.followUp.minRating,
+        maxRating: settings.followUp.maxRating,
         minLabel: settings.followUp.minLabel,
         maxLabel: settings.followUp.maxLabel,
       }];
@@ -88,6 +91,13 @@ export function AnnotationDisplay({
   const currentText = currentTexts[currentIndex];
   const totalTexts = currentTexts.length;
   const progress = totalTexts > 0 ? ((currentIndex + 1) / totalTexts) * 100 : 0;
+
+  // Helper to get the submit button text
+  const getSubmitButtonText = () => {
+    if (isSaving) return "Saving...";
+    if (currentIndex < totalTexts - 1) return "Next Text";
+    return "Complete";
+  };
 
   // Handle transition to main phase
   const handleStartMain = useCallback(() => {
@@ -148,11 +158,10 @@ export function AnnotationDisplay({
 
   const handleSegmentClick = useCallback(
     (segment: string, index: number) => {
-      // Calculate start/end indices in original text
-      let startIndex = 0;
-      for (let i = 0; i < index; i++) {
-        startIndex = currentText.text.indexOf(segments[i], startIndex) + segments[i].length;
-      }
+      // Calculate start/end indices in original text using reduce
+      const startIndex = segments.slice(0, index).reduce((acc, seg) => {
+        return currentText.text.indexOf(seg, acc) + seg.length;
+      }, 0);
       const actualStart = currentText.text.indexOf(segment, startIndex > 0 ? startIndex - segment.length : 0);
       const actualEnd = actualStart + segment.length;
 
@@ -563,7 +572,7 @@ export function AnnotationDisplay({
                   canSubmit && !isSaving ? brandColor : undefined,
               }}
             >
-              {isSaving ? "Saving..." : currentIndex < totalTexts - 1 ? "Next Text" : "Complete"}
+              {getSubmitButtonText()}
             </button>
           </motion.div>
         )}
@@ -583,4 +592,4 @@ export function AnnotationDisplay({
       )}
     </div>
   );
-}
+};

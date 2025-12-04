@@ -1,25 +1,27 @@
+import type { QuotaSettings } from "@/features/quota";
+
 import { NextRequest, NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
-import {
-  QuotaSettings,
-  DEFAULT_QUOTA_SETTINGS,
-  classifyParticipant,
-  parseQuotaCounts,
-  hasQuotaSpace,
-} from "@/lib/quota-settings";
 import { buildDynataRedirectFromForm } from "@/lib/dynata";
+import {
+  classifyParticipant,
+  DEFAULT_QUOTA_SETTINGS,
+  hasQuotaSpace,
+  parseQuotaCounts,
+} from "@/features/quota";
 
 /**
  * Shuffle array using Fisher-Yates algorithm
  */
-function shuffleArray<T>(array: T[]): T[] {
+const shuffleArray = <T>(array: T[]) => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
-}
+};
 
 /**
  * POST - Assign articles to session after demographics
@@ -41,10 +43,10 @@ function shuffleArray<T>(array: T[]): T[] {
  * 4. Assigns articles to session
  * 5. Returns articles or screens out if quota full
  */
-export async function POST(
+export const POST = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
-) {
+) => {
   try {
     const { formId } = await params;
     const body = await request.json();
@@ -229,4 +231,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+};

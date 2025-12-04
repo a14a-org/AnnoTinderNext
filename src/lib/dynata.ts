@@ -25,12 +25,12 @@ export type DynataStatus = "complete" | "screenout" | "quota_full";
  * @param basicCode - Optional project-specific basic code from Dynata
  * @returns The full redirect URL with rst, psid, and optionally basic parameters
  */
-export function buildDynataRedirect(
+export const buildDynataRedirect = (
   returnUrl: string,
   psid: string | null,
   status: DynataStatus,
   basicCode?: string | null
-): string {
+) => {
   const rstMap: Record<DynataStatus, string> = {
     complete: DYNATA_RST.COMPLETE,
     screenout: DYNATA_RST.SCREENOUT,
@@ -54,17 +54,17 @@ export function buildDynataRedirect(
     const basicParam = basicCode ? `&basic=${encodeURIComponent(basicCode)}` : "";
     return `${returnUrl}${separator}rst=${rstMap[status]}${psidParam}${basicParam}`;
   }
-}
+};
 
 /**
  * Build a Dynata redirect using form-level settings
  * Falls back to session-level returnUrl if form settings not configured
  */
-export function buildDynataRedirectFromForm(
+export const buildDynataRedirectFromForm = (
   form: { dynataEnabled?: boolean; dynataReturnUrl?: string | null; dynataBasicCode?: string | null },
   session: { returnUrl?: string | null; externalPid?: string | null },
   status: DynataStatus
-): string | null {
+) => {
   // Use form-level settings if Dynata is enabled and configured
   if (form.dynataEnabled && form.dynataReturnUrl) {
     return buildDynataRedirect(
@@ -81,7 +81,7 @@ export function buildDynataRedirectFromForm(
   }
 
   return null;
-}
+};
 
 /**
  * Parse Dynata parameters from URL search params
@@ -93,10 +93,10 @@ export function buildDynataRedirectFromForm(
  * @param urlParams - URLSearchParams object
  * @returns Object with externalPid and returnUrl
  */
-export function parseDynataParams(urlParams: URLSearchParams): {
+export const parseDynataParams = (urlParams: URLSearchParams): {
   externalPid: string | null;
   returnUrl: string | null;
-} {
+} => {
   // Try psid first (Dynata standard), then fall back to pid (legacy)
   const externalPid =
     urlParams.get("psid") ||
@@ -111,4 +111,4 @@ export function parseDynataParams(urlParams: URLSearchParams): {
     urlParams.get("redirect");
 
   return { externalPid, returnUrl };
-}
+};
