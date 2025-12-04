@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui";
+import { apiGet } from "@/lib/api";
 import {
   ArrowLeft,
   Loader2,
@@ -78,29 +79,38 @@ export default function SessionsDashboardPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  const fetchSessions = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSessions = async () => {
+      setIsLoading(true);
+      const { data: responseData, error } = await apiGet<SessionsData>(
         `/api/forms/${formId}/sessions?status=${statusFilter}&page=${page}&limit=50`
       );
-      if (res.ok) {
-        const responseData = await res.json();
+      if (cancelled) return;
+      if (responseData) {
         setData(responseData);
       } else {
+        console.error("Failed to fetch sessions:", error);
         router.push("/");
       }
-    } catch (error) {
-      console.error("Failed to fetch sessions:", error);
-      router.push("/");
-    } finally {
       setIsLoading(false);
-    }
+    };
+    fetchSessions();
+    return () => { cancelled = true; };
   }, [formId, statusFilter, page, router]);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+  const refetchSessions = async () => {
+    setIsLoading(true);
+    const { data: responseData, error } = await apiGet<SessionsData>(
+      `/api/forms/${formId}/sessions?status=${statusFilter}&page=${page}&limit=50`
+    );
+    if (responseData) {
+      setData(responseData);
+    } else {
+      console.error("Failed to fetch sessions:", error);
+    }
+    setIsLoading(false);
+  };
 
   const handleExport = (format: "csv" | "json", status: string) => {
     window.open(
@@ -153,7 +163,7 @@ export default function SessionsDashboardPage() {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              onClick={fetchSessions}
+              onClick={refetchSessions}
               disabled={isLoading}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />

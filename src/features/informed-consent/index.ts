@@ -20,3 +20,8 @@ export type {
   CustomSectionInput,
   InformedConsentSettingsInput,
 } from './schemas/informed-consent.schema'
+
+export {
+  InformedConsentEditor,
+  type InformedConsentEditorProps,
+} from './components/informed-consent-editor'

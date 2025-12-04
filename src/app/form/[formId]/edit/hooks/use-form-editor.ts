@@ -5,6 +5,8 @@ import type { Form, QuotaSettings } from "../types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { apiGet, apiPut } from "@/lib/api";
+
 import { DEFAULT_QUOTA_SETTINGS } from "../constants";
 
 interface UseFormEditorResult {
@@ -57,10 +59,58 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
   const initialLoadRef = useRef(true);
 
   const fetchForm = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/forms/${formId}`);
-      if (res.ok) {
-        const data = await res.json();
+    const { data, error } = await apiGet<Form>(`/api/forms/${formId}`);
+
+    if (data) {
+      setForm(data);
+      setTitle(data.title);
+      setDescription(data.description || "");
+      setBrandColor(data.brandColor || "#FF5A5F");
+      setIsPublished(data.isPublished);
+      setArticlesPerSession(data.articlesPerSession ?? 20);
+      setSessionTimeoutMins(data.sessionTimeoutMins ?? 10);
+      if (data.quotaSettings) {
+        const parsed = typeof data.quotaSettings === 'string' ? JSON.parse(data.quotaSettings) : data.quotaSettings;
+        setQuotaSettings(parsed);
+      }
+      setDynataEnabled(data.dynataEnabled ?? false);
+      setDynataReturnUrl(data.dynataReturnUrl ?? "");
+      setDynataBasicCode(data.dynataBasicCode ?? "");
+      setTimeout(() => { initialLoadRef.current = false; }, 100);
+    } else {
+      console.error("Failed to fetch form:", error);
+      router.push("/");
+    }
+    setIsLoading(false);
+  }, [formId, router]);
+
+  const saveFormSettings = useCallback(async () => {
+    setSaveStatus("saving");
+
+    const { data, error } = await apiPut<Form>(`/api/forms/${formId}`, {
+      title, description, brandColor, isPublished,
+      articlesPerSession, sessionTimeoutMins, quotaSettings,
+      dynataEnabled, dynataReturnUrl: dynataReturnUrl || null, dynataBasicCode: dynataBasicCode || null,
+    });
+
+    if (data) {
+      setForm((prev) => (prev ? { ...data, _count: prev._count } : data));
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } else {
+      console.error("Failed to save form:", error);
+      setSaveStatus("idle");
+    }
+  }, [formId, title, description, brandColor, isPublished, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadForm = async () => {
+      const { data, error } = await apiGet<Form>(`/api/forms/${formId}`);
+      if (cancelled) return;
+
+      if (data) {
         setForm(data);
         setTitle(data.title);
         setDescription(data.description || "");
@@ -77,42 +127,15 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
         setDynataBasicCode(data.dynataBasicCode ?? "");
         setTimeout(() => { initialLoadRef.current = false; }, 100);
       } else {
+        console.error("Failed to fetch form:", error);
         router.push("/");
       }
-    } catch (error) {
-      console.error("Failed to fetch form:", error);
-      router.push("/");
-    } finally {
       setIsLoading(false);
-    }
+    };
+
+    loadForm();
+    return () => { cancelled = true; };
   }, [formId, router]);
-
-  const saveFormSettings = useCallback(async () => {
-    setSaveStatus("saving");
-    try {
-      const res = await fetch(`/api/forms/${formId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title, description, brandColor, isPublished,
-          articlesPerSession, sessionTimeoutMins, quotaSettings,
-          dynataEnabled, dynataReturnUrl: dynataReturnUrl || null, dynataBasicCode: dynataBasicCode || null,
-        }),
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setForm((prev) => (prev ? { ...updated, _count: prev._count } : updated));
-        setSaveStatus("saved");
-        setTimeout(() => setSaveStatus("idle"), 2000);
-      }
-    } catch (error) {
-      console.error("Failed to save form:", error);
-      setSaveStatus("idle");
-    }
-  }, [formId, title, description, brandColor, isPublished, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode]);
-
-  useEffect(() => { fetchForm(); }, [fetchForm]);
 
   useEffect(() => {
     if (initialLoadRef.current) return;
@@ -128,16 +151,13 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
     const newStatus = !isPublished;
     setIsPublished(newStatus);
 
-    try {
-      await fetch(`/api/forms/${formId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPublished: newStatus }),
-      });
-      await fetchForm();
-    } catch (error) {
+    const { error } = await apiPut(`/api/forms/${formId}`, { isPublished: newStatus });
+
+    if (error) {
       console.error("Failed to toggle publish:", error);
       setIsPublished(!newStatus);
+    } else {
+      await fetchForm();
     }
   }, [formId, isPublished, fetchForm]);
 

@@ -8,7 +8,7 @@ import { Loader2, Check, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-rea
 import { Input } from '@/components/ui'
 import { DEFAULT_DEMOGRAPHICS_SETTINGS } from '../demographics'
 
-interface DemographicsEditorProps {
+export interface DemographicsEditorProps {
   settings: DemographicsSettings | null
   onUpdate: (settings: DemographicsSettings) => void
 }

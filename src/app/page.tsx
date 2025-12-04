@@ -15,6 +15,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui";
+import { apiGet, apiPost, apiDelete } from "@/lib/api";
 
 interface Form {
   id: string;
@@ -52,58 +53,39 @@ const FormsPage = () => {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchForms = async () => {
+      const { data, error } = await apiGet<Form[]>("/api/forms");
+      if (data) {
+        setForms(data);
+      } else {
+        console.error("Failed to fetch forms:", error);
+      }
+      setIsLoading(false);
+    };
     fetchForms();
   }, []);
 
-  const fetchForms = async () => {
-    try {
-      const res = await fetch("/api/forms");
-      if (res.ok) {
-        const data = await res.json();
-        setForms(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch forms:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleCreateForm = async () => {
     setIsCreating(true);
-    try {
-      const res = await fetch("/api/forms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Untitled Form",
-          description: "",
-        }),
-      });
-
-      if (res.ok) {
-        const form = await res.json();
-        router.push(`/form/${form.id}/edit`);
-      }
-    } catch (error) {
+    const { data, error } = await apiPost<Form>("/api/forms", {
+      title: "Untitled Form",
+      description: "",
+    });
+    if (data) {
+      router.push(`/form/${data.id}/edit`);
+    } else {
       console.error("Failed to create form:", error);
-    } finally {
-      setIsCreating(false);
     }
+    setIsCreating(false);
   };
 
   const handleDeleteForm = async (formId: string) => {
     if (!confirm("Are you sure you want to delete this form?")) return;
 
-    try {
-      const res = await fetch(`/api/forms/${formId}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        setForms(forms.filter((f) => f.id !== formId));
-      }
-    } catch (error) {
+    const { ok, error } = await apiDelete(`/api/forms/${formId}`);
+    if (ok) {
+      setForms(forms.filter((f) => f.id !== formId));
+    } else {
       console.error("Failed to delete form:", error);
     }
     setMenuOpen(null);

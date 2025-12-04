@@ -7,6 +7,7 @@ export {
 
 export { AnnotationEditor } from './components/annotation-editor'
 export type { AnnotationEditorProps } from './components/annotation-editor'
+export { AnnotationDisplay } from './components/annotation-display'
 export type {
   SelectionMode,
   FollowUpType,

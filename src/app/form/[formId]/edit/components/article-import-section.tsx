@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Loader2, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui";
+import { apiPost, apiDelete } from "@/lib/api";
 
 interface ArticleImportSectionProps {
   formId: string;
@@ -38,39 +39,25 @@ export const ArticleImportSection = ({
     setIsImporting(true);
     setImportStatus(null);
 
-    try {
-      const res = await fetch(`/api/forms/${formId}/articles`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: csvData }),
+    const { data, error } = await apiPost<{ imported: number }>(`/api/forms/${formId}/articles`, { csv: csvData });
+
+    if (data) {
+      setImportStatus({
+        type: "success",
+        message: `Imported ${data.imported} articles successfully!`,
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setImportStatus({
-          type: "success",
-          message: `Imported ${data.imported} articles successfully!`,
-        });
-        setCsvData("");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-        onImport();
-      } else {
-        setImportStatus({
-          type: "error",
-          message: data.error || "Failed to import articles",
-        });
+      setCsvData("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
-    } catch {
+      onImport();
+    } else {
       setImportStatus({
         type: "error",
-        message: "Failed to import articles",
+        message: error || "Failed to import articles",
       });
-    } finally {
-      setIsImporting(false);
     }
+    setIsImporting(false);
   };
 
   const handleClearArticles = async () => {
@@ -78,22 +65,18 @@ export const ArticleImportSection = ({
       return;
     }
 
-    try {
-      const res = await fetch(`/api/forms/${formId}/articles`, {
-        method: "DELETE",
-      });
+    const { ok, error } = await apiDelete(`/api/forms/${formId}/articles`);
 
-      if (res.ok) {
-        setImportStatus({
-          type: "success",
-          message: "All articles deleted successfully",
-        });
-        onImport();
-      }
-    } catch {
+    if (ok) {
+      setImportStatus({
+        type: "success",
+        message: "All articles deleted successfully",
+      });
+      onImport();
+    } else {
       setImportStatus({
         type: "error",
-        message: "Failed to delete articles",
+        message: error || "Failed to delete articles",
       });
     }
   };

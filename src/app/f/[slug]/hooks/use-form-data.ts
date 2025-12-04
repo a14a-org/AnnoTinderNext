@@ -4,6 +4,8 @@ import type { FormData } from "../types";
 
 import { useEffect, useState } from "react";
 
+import { apiGet } from "@/lib/api";
+
 import { sortQuestionsForFlow } from "../utils";
 
 interface UseFormDataResult {
@@ -19,23 +21,19 @@ export const useFormData = (slug: string): UseFormDataResult => {
 
   useEffect(() => {
     const fetchForm = async () => {
-      try {
-        const res = await fetch(`/api/forms/public/${slug}`);
-        if (res.ok) {
-          const data = await res.json();
-          // Sort questions in correct logical order for form flow
-          const sortedQuestions = sortQuestionsForFlow(data.questions);
-          setForm({ ...data, questions: sortedQuestions });
-        } else {
-          const errorData = await res.json();
-          setError(errorData.error || "Form not found");
-        }
-      } catch (err) {
-        console.error("Failed to fetch form:", err);
-        setError("Failed to load form");
-      } finally {
-        setIsLoading(false);
+      const { data, error: fetchError } = await apiGet<FormData>(
+        `/api/forms/public/${slug}`
+      );
+
+      if (data) {
+        // Sort questions in correct logical order for form flow
+        const sortedQuestions = sortQuestionsForFlow(data.questions);
+        setForm({ ...data, questions: sortedQuestions });
+      } else {
+        console.error("Failed to fetch form:", fetchError);
+        setError(fetchError || "Form not found");
       }
+      setIsLoading(false);
     };
 
     fetchForm();

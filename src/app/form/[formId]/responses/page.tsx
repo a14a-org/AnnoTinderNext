@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui";
+import { apiGet, apiDelete } from "@/lib/api";
 import {
   ArrowLeft,
   Loader2,
@@ -59,40 +60,39 @@ export default function FormResponsesPage() {
     new Set()
   );
 
-  const fetchResponses = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/forms/${formId}/submissions`);
-      if (res.ok) {
-        const responseData = await res.json();
+  useEffect(() => {
+    let cancelled = false;
+    const fetchResponses = async () => {
+      const { data: responseData, error } = await apiGet<ResponsesData>(`/api/forms/${formId}/submissions`);
+      if (cancelled) return;
+      if (responseData) {
         setData(responseData);
       } else {
+        console.error("Failed to fetch responses:", error);
         router.push("/");
       }
-    } catch (error) {
-      console.error("Failed to fetch responses:", error);
-      router.push("/");
-    } finally {
       setIsLoading(false);
-    }
+    };
+    fetchResponses();
+    return () => { cancelled = true; };
   }, [formId, router]);
 
-  useEffect(() => {
-    fetchResponses();
-  }, [fetchResponses]);
+  const refetchResponses = async () => {
+    const { data: responseData, error } = await apiGet<ResponsesData>(`/api/forms/${formId}/submissions`);
+    if (responseData) {
+      setData(responseData);
+    } else {
+      console.error("Failed to fetch responses:", error);
+    }
+  };
 
   const deleteSubmission = async (submissionId: string) => {
     if (!confirm("Delete this response?")) return;
 
-    try {
-      const res = await fetch(
-        `/api/forms/${formId}/submissions?submissionId=${submissionId}`,
-        { method: "DELETE" }
-      );
-
-      if (res.ok) {
-        await fetchResponses();
-      }
-    } catch (error) {
+    const { ok, error } = await apiDelete(`/api/forms/${formId}/submissions?submissionId=${submissionId}`);
+    if (ok) {
+      await refetchResponses();
+    } else {
       console.error("Failed to delete submission:", error);
     }
   };

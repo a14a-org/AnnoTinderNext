@@ -7,8 +7,9 @@ import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 
 import { validateDemographics } from '../demographics'
+import { letterToIndex } from '@/lib/keyboard-shortcuts'
 
-interface DemographicsDisplayProps {
+export interface DemographicsDisplayProps {
   settings: DemographicsSettings
   brandColor: string | undefined
   onComplete: (answers: DemographicAnswers) => void
@@ -81,16 +82,11 @@ export const DemographicsDisplay = ({
         return
       }
 
-      if (
-        currentField?.type === 'single_choice' &&
-        currentField.options &&
-        e.key.length === 1 &&
-        /^[a-z]$/i.test(e.key)
-      ) {
-        const letterIndex = e.key.toLowerCase().charCodeAt(0) - 97
-        if (letterIndex >= 0 && letterIndex < currentField.options.length) {
+      if (currentField?.type === 'single_choice' && currentField.options) {
+        const index = letterToIndex(e.key)
+        if (index !== null && index < currentField.options.length) {
           e.preventDefault()
-          handleSelect(currentField.options[letterIndex])
+          handleSelect(currentField.options[index])
         }
       }
 

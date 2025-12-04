@@ -12,6 +12,8 @@ import { useParams } from "next/navigation";
 
 import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button } from "@/components/ui";
+import { apiPost } from "@/lib/api";
+import { letterToIndex } from "@/lib/keyboard-shortcuts";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS, DemographicsDisplay } from "@/features/demographics";
 import {
   ConsentDeclinedDisplay,
@@ -108,62 +110,53 @@ const PublicFormPage = () => {
 
     setAnswer(activeQuestion.id, JSON.stringify(demographicAnswers));
 
-    try {
-      const sessionRes = await fetch(`/api/forms/${form.id}/session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ externalPid, returnUrl }),
-      });
+    // Create session
+    const sessionResult = await apiPost<{ session: SessionData }>(
+      `/api/forms/${form.id}/session`,
+      { externalPid, returnUrl }
+    );
 
-      if (!sessionRes.ok) {
-        const errorData = await sessionRes.json();
-        setError(errorData.error || "Failed to create session");
-        return;
-      }
-
-      const sessionData = await sessionRes.json();
-      setSession(sessionData.session);
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem(`session_${slug}`, sessionData.session.sessionToken);
-      }
-
-      const assignRes = await fetch(`/api/forms/${form.id}/session/assign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionToken: sessionData.session.sessionToken,
-          demographics: demographicAnswers,
-        }),
-      });
-
-      const assignData = await assignRes.json();
-
-      if (!assignRes.ok) {
-        if (assignRes.status === 409) {
-          setScreenedOut(true);
-          setScreenOutReason(assignData.reason || "quota_full");
-          if (returnUrl) {
-            const redirectUrl = new URL(returnUrl);
-            redirectUrl.searchParams.set("status", "quota_full");
-            if (externalPid) redirectUrl.searchParams.set("pid", externalPid);
-            window.location.href = redirectUrl.toString();
-          }
-          return;
-        }
-        setError(assignData.error || "Failed to assign articles");
-        return;
-      }
-
-      setAssignedArticles(assignData.articles || []);
-      setSession(assignData.session);
-      navigateTo(currentIndex + 1, 1);
-    } catch (err) {
-      console.error("Failed to process demographics:", err);
-      setError("Failed to process demographics");
-    } finally {
+    if (!sessionResult.ok) {
+      setError(sessionResult.error || "Failed to create session");
       setIsProcessingDemographics(false);
+      return;
     }
+
+    const sessionData = sessionResult.data;
+    setSession(sessionData.session);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`session_${slug}`, sessionData.session.sessionToken);
+    }
+
+    // Assign articles
+    const assignResult = await apiPost<{ articles: AssignedArticle[]; session: SessionData }>(
+      `/api/forms/${form.id}/session/assign`,
+      { sessionToken: sessionData.session.sessionToken, demographics: demographicAnswers }
+    );
+
+    if (!assignResult.ok) {
+      if (assignResult.status === 409) {
+        setScreenedOut(true);
+        setScreenOutReason(assignResult.error || "quota_full");
+        if (returnUrl) {
+          const redirectUrl = new URL(returnUrl);
+          redirectUrl.searchParams.set("status", "quota_full");
+          if (externalPid) redirectUrl.searchParams.set("pid", externalPid);
+          window.location.href = redirectUrl.toString();
+        }
+        setIsProcessingDemographics(false);
+        return;
+      }
+      setError(assignResult.error || "Failed to assign articles");
+      setIsProcessingDemographics(false);
+      return;
+    }
+
+    setAssignedArticles(assignResult.data.articles || []);
+    setSession(assignResult.data.session);
+    navigateTo(currentIndex + 1, 1);
+    setIsProcessingDemographics(false);
   }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer]);
 
   // Annotation handler
@@ -180,30 +173,19 @@ const PublicFormPage = () => {
 
     if (shouldSubmit) {
       setIsSubmitting(true);
-      try {
-        const res = await fetch(`/api/forms/public/${slug}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            answers: newAnswers,
-            startedAt,
-            sessionToken: session?.sessionToken,
-          }),
-        });
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+        answers: newAnswers,
+        startedAt,
+        sessionToken: session?.sessionToken,
+      });
 
-        if (res.ok) {
-          setIsSubmitted(true);
-          if (thankYouIndex >= 0) navigateTo(thankYouIndex, 1);
-        } else {
-          const errorData = await res.json();
-          setError(errorData.error || "Failed to submit");
-        }
-      } catch (err) {
-        console.error("Failed to submit:", err);
-        setError("Failed to submit form");
-      } finally {
-        setIsSubmitting(false);
+      if (ok) {
+        setIsSubmitted(true);
+        if (thankYouIndex >= 0) navigateTo(thankYouIndex, 1);
+      } else {
+        setError(error || "Failed to submit");
       }
+      setIsSubmitting(false);
       return;
     }
 
@@ -222,26 +204,19 @@ const PublicFormPage = () => {
 
     if (isLastQuestion && !isSubmitted) {
       setIsSubmitting(true);
-      try {
-        const res = await fetch(`/api/forms/public/${slug}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers, startedAt, sessionToken: session?.sessionToken }),
-        });
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+        answers,
+        startedAt,
+        sessionToken: session?.sessionToken,
+      });
 
-        if (res.ok) {
-          setIsSubmitted(true);
-          if (thankYouIndex >= 0) navigateTo(thankYouIndex, 1);
-        } else {
-          const errorData = await res.json();
-          setError(errorData.error || "Failed to submit");
-        }
-      } catch (err) {
-        console.error("Failed to submit:", err);
-        setError("Failed to submit form");
-      } finally {
-        setIsSubmitting(false);
+      if (ok) {
+        setIsSubmitted(true);
+        if (thankYouIndex >= 0) navigateTo(thankYouIndex, 1);
+      } else {
+        setError(error || "Failed to submit");
       }
+      setIsSubmitting(false);
       return;
     }
 
@@ -275,16 +250,16 @@ const PublicFormPage = () => {
 
       // Letter shortcuts for choice questions
       if (activeQuestion.type === "MULTIPLE_CHOICE" || activeQuestion.type === "DROPDOWN") {
-        const letterIndex = e.key.toLowerCase().charCodeAt(0) - 97;
-        if (letterIndex >= 0 && letterIndex < activeQuestion.options.length) {
-          setAnswer(activeQuestion.id, activeQuestion.options[letterIndex].value);
+        const index = letterToIndex(e.key);
+        if (index !== null && index < activeQuestion.options.length) {
+          setAnswer(activeQuestion.id, activeQuestion.options[index].value);
         }
       }
 
       if (activeQuestion.type === "CHECKBOXES") {
-        const letterIndex = e.key.toLowerCase().charCodeAt(0) - 97;
-        if (letterIndex >= 0 && letterIndex < activeQuestion.options.length) {
-          const optionValue = activeQuestion.options[letterIndex].value;
+        const index = letterToIndex(e.key);
+        if (index !== null && index < activeQuestion.options.length) {
+          const optionValue = activeQuestion.options[index].value;
           const currentAnswer = (answers[activeQuestion.id] as string[]) || [];
           const newAnswer = currentAnswer.includes(optionValue)
             ? currentAnswer.filter((v) => v !== optionValue)

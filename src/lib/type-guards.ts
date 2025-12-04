@@ -4,6 +4,10 @@
  * Type guard functions with `is` prefix for runtime type checking.
  */
 
+import type { InformedConsentSettings } from "@/features/informed-consent"
+import type { TextAnnotationSettings } from "@/features/annotation"
+import type { DemographicsSettings } from "@/features/demographics"
+
 /**
  * Check if a value is defined (not null or undefined)
  */
@@ -108,3 +112,44 @@ export const hasProperty = <K extends string>(
  */
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * Type guard for InformedConsentSettings
+ */
+export const isInformedConsentSettings = (
+  settings: unknown
+): settings is InformedConsentSettings => {
+  if (!settings || typeof settings !== "object") return false
+  const s = settings as Record<string, unknown>
+  return (
+    typeof s.title === "string" &&
+    typeof s.content === "string" &&
+    typeof s.requiresAcceptance === "boolean"
+  )
+}
+
+/**
+ * Type guard for TextAnnotationSettings
+ */
+export const isTextAnnotationSettings = (
+  settings: unknown
+): settings is TextAnnotationSettings => {
+  if (!settings || typeof settings !== "object") return false
+  const s = settings as Record<string, unknown>
+  return (
+    Array.isArray(s.texts) &&
+    (s.selectionMode === "sentence" || s.selectionMode === "word") &&
+    typeof s.highlightColor === "string"
+  )
+}
+
+/**
+ * Type guard for DemographicsSettings
+ */
+export const isDemographicsSettings = (
+  settings: unknown
+): settings is DemographicsSettings => {
+  if (!settings || typeof settings !== "object") return false
+  const s = settings as Record<string, unknown>
+  return Array.isArray(s.fields)
+}

@@ -45,6 +45,9 @@ export interface Form {
   articlesPerSession: number;
   quotaSettings: string | null;
   sessionTimeoutMins: number;
+  dynataEnabled: boolean;
+  dynataReturnUrl: string | null;
+  dynataBasicCode: string | null;
   questions: Question[];
   _count: {
     submissions: number;

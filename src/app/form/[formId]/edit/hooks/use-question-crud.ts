@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { DEFAULT_CONSENT_SETTINGS } from "@/features/informed-consent";
 import { DEFAULT_ANNOTATION_SETTINGS } from "@/features/annotation";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS } from "@/features/demographics";
+import { apiPost, apiPut, apiDelete } from "@/lib/api";
 
 import { isChoiceType } from "../constants";
 
@@ -36,71 +37,62 @@ export const useQuestionCrud = ({
 }: UseQuestionCrudOptions): UseQuestionCrudResult => {
 
   const addQuestion = useCallback(async (type: string) => {
-    try {
-      const defaultOptions = isChoiceType(type)
-        ? [{ label: "Option 1" }, { label: "Option 2" }, { label: "Option 3" }]
-        : undefined;
+    const defaultOptions = isChoiceType(type)
+      ? [{ label: "Option 1" }, { label: "Option 2" }, { label: "Option 3" }]
+      : undefined;
 
-      let defaultTitle = "Your question here";
-      let defaultSettings = undefined;
-      let insertAfter = undefined;
+    let defaultTitle = "Your question here";
+    let defaultSettings = undefined;
+    let insertAfter = undefined;
 
-      if (type === "INFORMED_CONSENT") {
-        defaultTitle = "Informed Consent";
-        defaultSettings = DEFAULT_CONSENT_SETTINGS;
+    if (type === "INFORMED_CONSENT") {
+      defaultTitle = "Informed Consent";
+      defaultSettings = DEFAULT_CONSENT_SETTINGS;
+      const welcomeScreen = form?.questions.find((q) => q.type === "WELCOME_SCREEN");
+      if (welcomeScreen) insertAfter = welcomeScreen.id;
+    }
+
+    if (type === "TEXT_ANNOTATION") {
+      defaultTitle = "Text Annotation";
+      defaultSettings = DEFAULT_ANNOTATION_SETTINGS;
+    }
+
+    if (type === "DEMOGRAPHICS") {
+      defaultTitle = "Demographics";
+      defaultSettings = DEFAULT_DEMOGRAPHICS_SETTINGS;
+      const informedConsent = form?.questions.find((q) => q.type === "INFORMED_CONSENT");
+      if (informedConsent) {
+        insertAfter = informedConsent.id;
+      } else {
         const welcomeScreen = form?.questions.find((q) => q.type === "WELCOME_SCREEN");
         if (welcomeScreen) insertAfter = welcomeScreen.id;
       }
+    }
 
-      if (type === "TEXT_ANNOTATION") {
-        defaultTitle = "Text Annotation";
-        defaultSettings = DEFAULT_ANNOTATION_SETTINGS;
-      }
+    const { ok, error } = await apiPost(`/api/forms/${formId}/questions`, {
+      type, title: defaultTitle, isRequired: false, options: defaultOptions, settings: defaultSettings, insertAfter,
+    });
 
-      if (type === "DEMOGRAPHICS") {
-        defaultTitle = "Demographics";
-        defaultSettings = DEFAULT_DEMOGRAPHICS_SETTINGS;
-        const informedConsent = form?.questions.find((q) => q.type === "INFORMED_CONSENT");
-        if (informedConsent) {
-          insertAfter = informedConsent.id;
-        } else {
-          const welcomeScreen = form?.questions.find((q) => q.type === "WELCOME_SCREEN");
-          if (welcomeScreen) insertAfter = welcomeScreen.id;
-        }
-      }
-
-      const res = await fetch(`/api/forms/${formId}/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, title: defaultTitle, isRequired: false, options: defaultOptions, settings: defaultSettings, insertAfter }),
-      });
-
-      if (res.ok) await fetchForm();
-    } catch (error) {
+    if (ok) {
+      await fetchForm();
+    } else {
       console.error("Failed to add question:", error);
     }
     setShowAddMenu(false);
   }, [form, formId, fetchForm, setShowAddMenu]);
 
   const updateQuestion = useCallback(async (questionId: string, updates: QuestionUpdatePayload) => {
-    try {
-      const res = await fetch(`/api/forms/${formId}/questions/${questionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
+    const { data, error } = await apiPut<Question>(`/api/forms/${formId}/questions/${questionId}`, updates);
 
-      if (res.ok) {
-        const updatedQuestion = await res.json();
-        setForm((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            questions: prev.questions.map((q) => q.id === questionId ? { ...q, ...updatedQuestion } : q),
-          };
-        });
-      }
-    } catch (error) {
+    if (data) {
+      setForm((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          questions: prev.questions.map((q) => q.id === questionId ? { ...q, ...data } : q),
+        };
+      });
+    } else {
       console.error("Failed to update question:", error);
     }
   }, [formId, setForm]);
@@ -108,13 +100,12 @@ export const useQuestionCrud = ({
   const deleteQuestion = useCallback(async (questionId: string) => {
     if (!confirm("Delete this question?")) return;
 
-    try {
-      const res = await fetch(`/api/forms/${formId}/questions/${questionId}`, { method: "DELETE" });
-      if (res.ok) {
-        setSelectedQuestion(null);
-        await fetchForm();
-      }
-    } catch (error) {
+    const { ok, error } = await apiDelete(`/api/forms/${formId}/questions/${questionId}`);
+
+    if (ok) {
+      setSelectedQuestion(null);
+      await fetchForm();
+    } else {
       console.error("Failed to delete question:", error);
     }
   }, [formId, fetchForm, setSelectedQuestion]);
@@ -131,13 +122,11 @@ export const useQuestionCrud = ({
 
     setForm({ ...form, questions: updatedQuestions });
 
-    try {
-      await fetch(`/api/forms/${formId}/questions`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionIds: newOrder.map((q) => q.id) }),
-      });
-    } catch (error) {
+    const { error } = await apiPut(`/api/forms/${formId}/questions`, {
+      questionIds: newOrder.map((q) => q.id),
+    });
+
+    if (error) {
       console.error("Failed to reorder questions:", error);
       await fetchForm();
     }

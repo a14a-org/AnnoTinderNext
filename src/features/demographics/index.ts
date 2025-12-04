@@ -21,4 +21,6 @@ export type {
 } from './schemas/demographics.schema'
 
 export { DemographicsDisplay } from './components/demographics-display'
+export type { DemographicsDisplayProps } from './components/demographics-display'
 export { DemographicsEditor } from './components/demographics-editor'
+export type { DemographicsEditorProps } from './components/demographics-editor'
