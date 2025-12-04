@@ -50,8 +50,8 @@ export const QuestionCard = ({
               <span className="text-red-500">*</span>
             )}
           </div>
-          <h3 className="font-medium text-obsidian">
-            {question.title}
+          <h3 className={`font-medium ${question.title ? "text-obsidian" : "text-obsidian-muted/60 italic"}`}>
+            {question.title || "Question title"}
           </h3>
           {question.description && (
             <p className="text-sm text-obsidian-muted mt-1">

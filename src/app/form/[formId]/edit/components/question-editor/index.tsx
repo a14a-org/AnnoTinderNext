@@ -76,6 +76,7 @@ export const QuestionEditor = ({
   }, [title, description, placeholder, isRequired, options, question.type, onUpdate]);
 
   const isScreen = question.type === "WELCOME_SCREEN" || question.type === "THANK_YOU_SCREEN" || question.type === "INFORMED_CONSENT" || question.type === "DEMOGRAPHICS";
+  const isWelcome = question.type === "WELCOME_SCREEN";
   const isInformedConsent = question.type === "INFORMED_CONSENT";
   const isTextAnnotation = question.type === "TEXT_ANNOTATION";
   const isDemographics = question.type === "DEMOGRAPHICS";
@@ -102,6 +103,17 @@ export const QuestionEditor = ({
       description: description || null,
       settings: demographicsSettings as unknown as Record<string, unknown>,
     });
+  };
+
+  const getTitlePlaceholder = () => {
+    if (isWelcome) return "Add a title for your welcome screen";
+    if (isScreen) return "Heading text";
+    return "Your question here";
+  };
+
+  const getDescriptionPlaceholder = () => {
+    if (isWelcome) return "Please take a moment to fill out this form.";
+    return "Optional helper text";
   };
 
   // Special editor for Informed Consent
@@ -231,8 +243,14 @@ export const QuestionEditor = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-obsidian mb-1">{isScreen ? "Heading" : "Question"}</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isScreen ? "Heading text" : "Your question"} />
+        <label className="block text-sm font-medium text-obsidian mb-1">
+          {isWelcome ? "Edit Title" : isScreen ? "Heading" : "Question"}
+        </label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={getTitlePlaceholder()}
+        />
       </div>
 
       <div>
@@ -240,7 +258,7 @@ export const QuestionEditor = ({
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional helper text"
+          placeholder={getDescriptionPlaceholder()}
           className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
           rows={2}
         />

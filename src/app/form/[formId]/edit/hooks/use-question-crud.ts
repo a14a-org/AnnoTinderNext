@@ -41,7 +41,7 @@ export const useQuestionCrud = ({
       ? [{ label: "Option 1" }, { label: "Option 2" }, { label: "Option 3" }]
       : undefined;
 
-    let defaultTitle = "Your question here";
+    let defaultTitle = "";
     let defaultSettings = undefined;
     let insertAfter = undefined;
 
