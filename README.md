@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AnnoTinder
+
+A Next.js application for creating annotation surveys with demographic quotas, designed for research data collection.
+
+## Prerequisites
+
+- **Node.js** 18.x or higher
+- **Yarn** (this project uses Yarn 4 - it will install automatically via corepack)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd AnnoTinderNext
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Enable Corepack (for Yarn 4)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+corepack enable
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Install dependencies
 
-## Learn More
+```bash
+yarn install
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Set up environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create a `.env` file in the root directory:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cp .env.example .env
+```
 
-## Deploy on Vercel
+Or create it manually with the following content:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+DATABASE_URL="file:./dev.db"
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 5. Set up the database
+
+Generate the Prisma client and create the SQLite database:
+
+```bash
+# Generate Prisma client
+yarn prisma generate
+
+# Create the database and apply migrations
+yarn prisma db push
+```
+
+This creates a `dev.db` SQLite file in the `prisma/` directory.
+
+### 6. Start the development server
+
+```bash
+yarn dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `yarn dev` | Start development server |
+| `yarn build` | Build for production |
+| `yarn start` | Start production server |
+| `yarn lint` | Run ESLint |
+| `yarn lint:fix` | Run ESLint with auto-fix |
+| `yarn test` | Run tests in watch mode |
+| `yarn test:run` | Run tests once |
+| `yarn prisma studio` | Open Prisma Studio (database GUI) |
+
+## Database Management
+
+### View database contents
+
+```bash
+yarn prisma studio
+```
+
+This opens a web-based GUI at [http://localhost:5555](http://localhost:5555) to browse and edit data.
+
+### Reset the database
+
+```bash
+# Delete the database and recreate it
+rm prisma/dev.db
+yarn prisma db push
+```
+
+### Create a migration (for schema changes)
+
+```bash
+yarn prisma migrate dev --name <migration-name>
+```
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages and API routes
+│   ├── api/               # API endpoints
+│   ├── f/[slug]/          # Public form view
+│   └── form/[formId]/     # Form editor and dashboard
+├── components/
+│   └── ui/                # Reusable UI components
+├── features/              # Feature modules
+│   ├── annotation/        # Text annotation functionality
+│   ├── demographics/      # Demographics collection
+│   ├── informed-consent/  # Consent flow
+│   └── quota/             # Quota management
+├── lib/                   # Shared utilities
+│   ├── api.ts            # API fetch utilities
+│   ├── db.ts             # Prisma client
+│   └── utils.ts          # General utilities
+└── generated/            # Generated Prisma client
+```
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Database**: SQLite (via Prisma)
+- **Styling**: Tailwind CSS 4
+- **Animation**: Framer Motion
+- **Icons**: Lucide React
+- **Validation**: Zod
+- **Testing**: Vitest
+
+## License
+
+Private - Omroep Zwart
