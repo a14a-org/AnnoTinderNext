@@ -8,7 +8,7 @@ import type { AssignedArticle, SessionData } from "./types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Check, ChevronRight, Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button } from "@/components/ui";
@@ -32,7 +32,9 @@ import { useFormData, useUrlParams, useFormAnswers, useFormNavigation } from "./
 
 const PublicFormPage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const isPreview = searchParams.get("preview") === "true";
 
   // Custom hooks for form management
   const { form, isLoading, error: loadError } = useFormData(slug);
@@ -112,7 +114,7 @@ const PublicFormPage = () => {
 
     // Create session
     const sessionResult = await apiPost<{ session: SessionData }>(
-      `/api/forms/${form.id}/session`,
+      `/api/forms/${form.id}/session${isPreview ? "?preview=true" : ""}`,
       { externalPid, returnUrl }
     );
 
@@ -131,7 +133,7 @@ const PublicFormPage = () => {
 
     // Assign articles
     const assignResult = await apiPost<{ articles: AssignedArticle[]; session: SessionData }>(
-      `/api/forms/${form.id}/session/assign`,
+      `/api/forms/${form.id}/session/assign${isPreview ? "?preview=true" : ""}`,
       { sessionToken: sessionData.session.sessionToken, demographics: demographicAnswers }
     );
 
@@ -157,7 +159,7 @@ const PublicFormPage = () => {
     setSession(assignResult.data.session);
     navigateTo(currentIndex + 1, 1);
     setIsProcessingDemographics(false);
-  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer]);
+  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview]);
 
   // Annotation handler
   const handleAnnotationComplete = useCallback(async (annotations: Annotation[]) => {
@@ -173,7 +175,7 @@ const PublicFormPage = () => {
 
     if (shouldSubmit) {
       setIsSubmitting(true);
-      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}${isPreview ? "?preview=true" : ""}`, {
         answers: newAnswers,
         startedAt,
         sessionToken: session?.sessionToken,
@@ -192,7 +194,7 @@ const PublicFormPage = () => {
     if (currentIndex < form.questions.length - 1) {
       navigateTo(currentIndex + 1, 1);
     }
-  }, [activeQuestion, form, currentIndex, answers, isSubmitted, slug, startedAt, session, navigateTo, setAnswers]);
+  }, [activeQuestion, form, currentIndex, answers, isSubmitted, slug, startedAt, session, navigateTo, setAnswers, isPreview]);
 
   // Submit/next handler
   const goNext = useCallback(async () => {
@@ -204,7 +206,7 @@ const PublicFormPage = () => {
 
     if (isLastQuestion && !isSubmitted) {
       setIsSubmitting(true);
-      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}${isPreview ? "?preview=true" : ""}`, {
         answers,
         startedAt,
         sessionToken: session?.sessionToken,
@@ -223,7 +225,7 @@ const PublicFormPage = () => {
     if (currentIndex < form.questions.length - 1) {
       navigateTo(currentIndex + 1, 1);
     }
-  }, [form, currentIndex, answers, startedAt, slug, canProceedNow, isSubmitted, session, navigateTo]);
+  }, [form, currentIndex, answers, startedAt, slug, canProceedNow, isSubmitted, session, navigateTo, isPreview]);
 
   // Focus input when question changes
   useEffect(() => {

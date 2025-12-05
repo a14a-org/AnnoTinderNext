@@ -139,15 +139,13 @@ export const EditorHeader = ({
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
-          {form.isPublished && (
-            <Button
-              variant="ghost"
-              onClick={() => window.open(`/f/${form.slug}`, "_blank")}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Preview
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            onClick={() => window.open(`/f/${form.slug}?preview=true`, "_blank")}
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
           <Button onClick={onTogglePublish}>
             {isPublished ? (
               <>
@@ -227,16 +225,14 @@ export const EditorHeader = ({
                   )}
                 </Button>
 
-                {form.isPublished && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => window.open(`/f/${form.slug}`, "_blank")}
-                    className="justify-start w-full"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Preview
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  onClick={() => window.open(`/f/${form.slug}?preview=true`, "_blank")}
+                  className="justify-start w-full"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
 
                 <div className="h-px bg-gray-100 my-1" />
 
