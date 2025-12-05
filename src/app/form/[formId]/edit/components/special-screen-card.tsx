@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Question, QuestionUpdatePayload } from "../types";
 import type { LucideIcon } from "lucide-react";
 
@@ -9,6 +9,7 @@ interface SpecialScreenCardProps {
   icon: LucideIcon;
   label: string;
   isSelected: boolean;
+  hasError?: boolean;
   onSelect: () => void;
   onUpdate: (updates: QuestionUpdatePayload) => void;
 }
@@ -18,11 +19,14 @@ export const SpecialScreenCard = ({
   icon: Icon,
   label,
   isSelected,
+  hasError,
   onSelect,
   onUpdate,
 }: SpecialScreenCardProps) => {
   const [title, setTitle] = useState(question.title);
   const [description, setDescription] = useState(question.description || "");
+
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTitle(question.title);
@@ -32,11 +36,22 @@ export const SpecialScreenCard = ({
     setDescription(question.description || "");
   }, [question.description]);
 
+  // Auto-focus logic
+  useEffect(() => {
+    if (isSelected && hasError) {
+      if (!title || title.trim() === "") {
+        titleInputRef.current?.focus();
+      }
+    }
+  }, [isSelected, hasError]);
+
   return (
     <div
       className={`bg-white rounded-xl border-2 p-6 cursor-pointer transition-colors ${
         isSelected
           ? "border-chili-coral"
+          : hasError
+          ? "border-amber-300 bg-amber-50/30"
           : "border-gray-200 hover:border-gray-300"
       }`}
       onClick={(e) => {
@@ -49,6 +64,7 @@ export const SpecialScreenCard = ({
         {label}
       </div>
       <input
+        ref={titleInputRef}
         value={title}
         onFocus={onSelect}
         onChange={(e) => {

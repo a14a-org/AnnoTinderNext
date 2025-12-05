@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Question, QuestionUpdatePayload } from "../types";
 
 import { Reorder } from "framer-motion";
@@ -32,6 +32,14 @@ export const QuestionCard = ({
   const [description, setDescription] = useState(question.description || "");
   const [options, setOptions] = useState(question.options || []);
 
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const optionInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Reset option refs array when options length changes
+  useEffect(() => {
+    optionInputRefs.current = optionInputRefs.current.slice(0, options.length);
+  }, [options.length]);
+
   useEffect(() => {
     setTitle(question.title);
   }, [question.title]);
@@ -43,6 +51,27 @@ export const QuestionCard = ({
   useEffect(() => {
     setOptions(question.options || []);
   }, [question.options]);
+
+  // Auto-focus the first invalid field when the card is selected and has errors
+  useEffect(() => {
+    if (isSelected && hasError) {
+      // Check if title is empty
+      if (!title || title.trim() === "") {
+        titleInputRef.current?.focus();
+        return;
+      }
+
+      // Check if any option is empty for choice types
+      if (isChoiceType(question.type)) {
+        const emptyOptionIndex = options.findIndex(
+          (opt) => !opt.label || opt.label.trim() === ""
+        );
+        if (emptyOptionIndex !== -1) {
+          optionInputRefs.current[emptyOptionIndex]?.focus();
+        }
+      }
+    }
+  }, [isSelected, hasError]); // We want to re-check if selection changes or error state changes
 
   return (
     <Reorder.Item
@@ -78,6 +107,7 @@ export const QuestionCard = ({
             )}
           </div>
           <input
+            ref={titleInputRef}
             value={title}
             onFocus={onSelect}
             onChange={(e) => {
@@ -113,6 +143,9 @@ export const QuestionCard = ({
                 >
                   <div className="w-4 h-4 border border-gray-300 rounded shrink-0" />
                   <input
+                    ref={(el) => {
+                      optionInputRefs.current[index] = el;
+                    }}
                     value={opt.label}
                     onFocus={onSelect}
                     onChange={(e) => {

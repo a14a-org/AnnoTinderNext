@@ -204,6 +204,7 @@ const FormEditorPage = () => {
                 icon={Play}
                 label="Welcome Screen"
                 isSelected={selectedQuestion === welcomeScreen.id}
+                hasError={invalidQuestions.includes(welcomeScreen.id)}
                 onSelect={() => setSelectedQuestion(welcomeScreen.id)}
                 onUpdate={(updates) => updateQuestion(welcomeScreen.id, updates)}
               />
@@ -215,6 +216,7 @@ const FormEditorPage = () => {
                 icon={ShieldCheck}
                 label="Informed Consent"
                 isSelected={selectedQuestion === informedConsent.id}
+                hasError={invalidQuestions.includes(informedConsent.id)}
                 onSelect={() => setSelectedQuestion(informedConsent.id)}
                 onUpdate={(updates) => updateQuestion(informedConsent.id, updates)}
               />
@@ -226,6 +228,7 @@ const FormEditorPage = () => {
                 icon={Users}
                 label="Demographics"
                 isSelected={selectedQuestion === demographics.id}
+                hasError={invalidQuestions.includes(demographics.id)}
                 onSelect={() => setSelectedQuestion(demographics.id)}
                 onUpdate={(updates) => updateQuestion(demographics.id, updates)}
               />
@@ -257,6 +260,7 @@ const FormEditorPage = () => {
                 icon={Heart}
                 label="Thank You Screen"
                 isSelected={selectedQuestion === thankYouScreen.id}
+                hasError={invalidQuestions.includes(thankYouScreen.id)}
                 onSelect={() => setSelectedQuestion(thankYouScreen.id)}
                 onUpdate={(updates) => updateQuestion(thankYouScreen.id, updates)}
               />
