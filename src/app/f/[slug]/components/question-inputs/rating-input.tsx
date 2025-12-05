@@ -18,7 +18,7 @@ export const RatingInput = ({
       <button
         key={num}
         onClick={() => onChange(num)}
-        className={`w-14 h-14 rounded-lg border-2 text-xl font-medium transition-all ${
+        className={`cursor-pointer w-14 h-14 rounded-lg border-2 text-xl font-medium transition-all ${
           value === num
             ? "border-current"
             : "border-gray-200 hover:border-gray-300"
