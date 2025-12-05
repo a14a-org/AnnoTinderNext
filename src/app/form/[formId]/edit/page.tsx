@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Reorder } from "framer-motion";
 import { Heart, Loader2, Play, ShieldCheck, Users } from "lucide-react";
@@ -92,6 +92,13 @@ const FormEditorPage = () => {
     return issues.length === 0 && generalErrors.length === 0;
   };
 
+  // Re-validate when form updates if alert is visible
+  useEffect(() => {
+    if (showValidationAlert) {
+      validateForm();
+    }
+  }, [form, title, showValidationAlert]);
+
   const handlePublishClick = () => {
     if (isPublished) {
       // If unpublishing, just do it
@@ -150,8 +157,10 @@ const FormEditorPage = () => {
         <ValidationAlert
           issueCount={invalidQuestions.length}
           errors={validationErrors}
+          invalidQuestions={invalidQuestions}
           onPublishAnyway={handlePublishAnyway}
           onDismiss={() => setShowValidationAlert(false)}
+          onSelectQuestion={setSelectedQuestion}
         />
       )}
 
@@ -181,7 +190,14 @@ const FormEditorPage = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+          <div 
+            className="lg:col-span-2 space-y-4 min-h-[500px]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setSelectedQuestion(null);
+              }
+            }}
+          >
             {welcomeScreen && (
               <SpecialScreenCard
                 question={welcomeScreen}

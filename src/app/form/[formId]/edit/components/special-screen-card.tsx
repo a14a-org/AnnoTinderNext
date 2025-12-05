@@ -39,7 +39,10 @@ export const SpecialScreenCard = ({
           ? "border-chili-coral"
           : "border-gray-200 hover:border-gray-300"
       }`}
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
     >
       <div className="flex items-center gap-2 text-sm text-obsidian-muted mb-2">
         <Icon className="w-4 h-4" />

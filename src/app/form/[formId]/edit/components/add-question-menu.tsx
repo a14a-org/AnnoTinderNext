@@ -17,7 +17,10 @@ export const AddQuestionMenu = ({
 }: AddQuestionMenuProps) => (
   <div className="relative">
     <button
-      onClick={onToggle}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
       className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl text-obsidian-muted hover:border-chili-coral hover:text-chili-coral transition-colors flex items-center justify-center gap-2"
     >
       <Plus className="w-5 h-5" />

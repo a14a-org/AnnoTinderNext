@@ -7,16 +7,39 @@ import { Button } from "@/components/ui";
 interface ValidationAlertProps {
   issueCount: number;
   errors?: string[];
+  invalidQuestions?: string[];
   onPublishAnyway: () => void;
   onDismiss: () => void;
+  onSelectQuestion?: (id: string) => void;
 }
 
 export const ValidationAlert = ({
   issueCount,
   errors = [],
+  invalidQuestions = [],
   onPublishAnyway,
   onDismiss,
+  onSelectQuestion,
 }: ValidationAlertProps) => {
+  const scrollToQuestion = () => {
+    if (invalidQuestions.length > 0) {
+      const firstInvalidId = invalidQuestions[0];
+      
+      if (onSelectQuestion) {
+        onSelectQuestion(firstInvalidId);
+      }
+
+      // Small delay to allow selection state to update before scrolling (if needed)
+      // or just scroll immediately
+      setTimeout(() => {
+        const element = document.getElementById(`question-${firstInvalidId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -34,17 +57,23 @@ export const ValidationAlert = ({
               <h3 className="font-medium text-amber-900">
                 {issueCount > 0 || errors.length > 0 ? "Form is incomplete" : "Ready to publish"}
               </h3>
-              {errors.length > 0 ? (
-                 <ul className="text-sm text-amber-700 list-disc list-inside">
-                   {errors.map((err, i) => (
-                     <li key={i}>{err}</li>
-                   ))}
-                 </ul>
-              ) : (
-                <p className="text-sm text-amber-700">
-                   {issueCount} {issueCount === 1 ? "issue" : "issues"} found
-                </p>
-              )}
+              <div className="text-sm text-amber-700">
+                {errors.length > 0 && (
+                   <ul className="list-disc list-inside mb-1">
+                     {errors.map((err, i) => (
+                       <li key={i}>{err}</li>
+                     ))}
+                   </ul>
+                )}
+                {issueCount > 0 && (
+                  <button 
+                    onClick={scrollToQuestion}
+                    className="font-medium text-amber-800 hover:text-amber-900 hover:underline cursor-pointer pointer-events-auto flex items-center gap-1"
+                  >
+                    Go to first issue <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
