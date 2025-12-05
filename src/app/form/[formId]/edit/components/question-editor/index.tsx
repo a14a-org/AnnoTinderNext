@@ -162,6 +162,12 @@ export const QuestionEditor = ({
   if (isInformedConsent) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-obsidian">Edit Informed Consent</h3>
+          <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Consent Title</label>
           <Input 
