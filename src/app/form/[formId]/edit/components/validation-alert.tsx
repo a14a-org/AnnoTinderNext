@@ -6,12 +6,14 @@ import { Button } from "@/components/ui";
 
 interface ValidationAlertProps {
   issueCount: number;
+  errors?: string[];
   onPublishAnyway: () => void;
   onDismiss: () => void;
 }
 
 export const ValidationAlert = ({
   issueCount,
+  errors = [],
   onPublishAnyway,
   onDismiss,
 }: ValidationAlertProps) => {
@@ -30,11 +32,19 @@ export const ValidationAlert = ({
             </div>
             <div>
               <h3 className="font-medium text-amber-900">
-                {issueCount} {issueCount === 1 ? "issue" : "issues"} found
+                {issueCount > 0 || errors.length > 0 ? "Form is incomplete" : "Ready to publish"}
               </h3>
-              <p className="text-sm text-amber-700">
-                Some questions are missing titles or options.
-              </p>
+              {errors.length > 0 ? (
+                 <ul className="text-sm text-amber-700 list-disc list-inside">
+                   {errors.map((err, i) => (
+                     <li key={i}>{err}</li>
+                   ))}
+                 </ul>
+              ) : (
+                <p className="text-sm text-amber-700">
+                   {issueCount} {issueCount === 1 ? "issue" : "issues"} found
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">

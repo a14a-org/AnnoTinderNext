@@ -36,15 +36,31 @@ const FormEditorPage = () => {
 
   const [invalidQuestions, setInvalidQuestions] = useState<string[]>([]);
   const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const validateForm = () => {
     if (!form) return true;
     
     const issues: string[] = [];
+    const generalErrors: string[] = [];
+
+    // Check form title
+    if (!title || title.trim() === "") {
+      generalErrors.push("Form is missing a title");
+    }
     
     form.questions.forEach((q) => {
-      // Skip Welcome/Thank You screens for validation
-      if (q.type === "WELCOME_SCREEN" || q.type === "THANK_YOU_SCREEN") return;
+      // Specific check for Welcome Screen title
+      if (q.type === "WELCOME_SCREEN") {
+        if (!q.title || q.title.trim() === "") {
+          issues.push(q.id);
+          generalErrors.push("Welcome screen is missing a title");
+        }
+        return;
+      }
+
+      // Skip Thank You screen for validation
+      if (q.type === "THANK_YOU_SCREEN") return;
 
       let isValid = true;
 
@@ -67,8 +83,13 @@ const FormEditorPage = () => {
       }
     });
 
+    if (issues.length > 0) {
+      generalErrors.push(`${issues.length} ${issues.length === 1 ? "question is" : "questions are"} incomplete`);
+    }
+
     setInvalidQuestions(issues);
-    return issues.length === 0;
+    setValidationErrors(generalErrors);
+    return issues.length === 0 && generalErrors.length === 0;
   };
 
   const handlePublishClick = () => {
@@ -128,6 +149,7 @@ const FormEditorPage = () => {
       {showValidationAlert && (
         <ValidationAlert
           issueCount={invalidQuestions.length}
+          errors={validationErrors}
           onPublishAnyway={handlePublishAnyway}
           onDismiss={() => setShowValidationAlert(false)}
         />
