@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import type { Question, QuestionUpdatePayload } from "../types";
 
 import { Reorder } from "framer-motion";
-import { GripVertical, Type } from "lucide-react";
+import { GripVertical, Type, Plus } from "lucide-react";
 
 import { questionTypes, isChoiceType } from "../constants";
 
@@ -30,6 +30,7 @@ export const QuestionCard = ({
 
   const [title, setTitle] = useState(question.title);
   const [description, setDescription] = useState(question.description || "");
+  const [options, setOptions] = useState(question.options || []);
 
   useEffect(() => {
     setTitle(question.title);
@@ -38,6 +39,10 @@ export const QuestionCard = ({
   useEffect(() => {
     setDescription(question.description || "");
   }, [question.description]);
+
+  useEffect(() => {
+    setOptions(question.options || []);
+  }, [question.options]);
 
   return (
     <Reorder.Item
@@ -97,17 +102,63 @@ export const QuestionCard = ({
             rows={description ? Math.max(2, description.split('\n').length) : 1}
             onPointerDown={(e) => e.stopPropagation()}
           />
-          {isChoiceType(question.type) && question.options.length > 0 && (
+          {isChoiceType(question.type) && (
             <div className="mt-3 space-y-1">
-              {question.options.map((opt) => (
+              {options.map((opt, index) => (
                 <div
                   key={opt.id}
                   className="text-sm text-obsidian-muted flex items-center gap-2"
                 >
-                  <div className="w-4 h-4 border border-gray-300 rounded" />
-                  {opt.label}
+                  <div className="w-4 h-4 border border-gray-300 rounded shrink-0" />
+                  <input
+                    value={opt.label}
+                    onChange={(e) => {
+                      const newLabel = e.target.value;
+                      const newOptions = [...options];
+                      newOptions[index] = {
+                        ...newOptions[index],
+                        label: newLabel,
+                        value: newLabel,
+                      };
+                      setOptions(newOptions);
+                      onUpdate({
+                        options: newOptions.map((o) => ({
+                          label: o.label,
+                          value: o.value,
+                        })),
+                      });
+                    }}
+                    className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none text-obsidian-muted placeholder:text-gray-300"
+                    placeholder={`Option ${index + 1}`}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  />
                 </div>
               ))}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newOptions = [
+                    ...options,
+                    {
+                      id: `new-${Date.now()}`,
+                      label: `Option ${options.length + 1}`,
+                      value: `Option ${options.length + 1}`,
+                      displayOrder: options.length,
+                    },
+                  ];
+                  setOptions(newOptions);
+                  onUpdate({
+                    options: newOptions.map((o) => ({
+                      label: o.label,
+                      value: o.value,
+                    })),
+                  });
+                }}
+                className="flex items-center gap-2 text-sm text-chili-coral hover:text-chili-coral/80 mt-2 px-0.5 py-1 rounded transition-colors hover:bg-chili-coral/5"
+              >
+                <Plus className="w-4 h-4" />
+                Add option
+              </button>
             </div>
           )}
         </div>
