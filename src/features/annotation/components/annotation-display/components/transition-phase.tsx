@@ -34,7 +34,7 @@ export const TransitionPhase = ({
         </p>
         <button
           onClick={onStartMain}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all hover:opacity-90"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all cursor-pointer hover:brightness-110 active:brightness-90"
           style={{ backgroundColor: brandColor }}
         >
           Start Main Task

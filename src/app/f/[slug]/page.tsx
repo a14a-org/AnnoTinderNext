@@ -362,7 +362,11 @@ const PublicFormPage = () => {
               <div className="text-center">
                 <h1 className="text-4xl font-display font-bold text-obsidian mb-4">{activeQuestion.title}</h1>
                 {activeQuestion.description && <p className="text-lg text-obsidian-muted mb-8">{activeQuestion.description}</p>}
-                <Button onClick={goNext} className="text-lg px-8 py-3" style={{ backgroundColor: brandColor }}>
+                <Button
+                  onClick={goNext}
+                  className="text-lg px-8 py-3 cursor-pointer transition-all hover:brightness-110 active:brightness-90"
+                  style={{ backgroundColor: brandColor }}
+                >
                   {form.buttonText || "Start"}
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
@@ -442,7 +446,12 @@ const PublicFormPage = () => {
                 />
 
                 <div className="mt-8">
-                  <Button onClick={goNext} disabled={!canProceedNow() || isSubmitting} style={{ backgroundColor: brandColor }}>
+                  <Button
+                    onClick={goNext}
+                    disabled={!canProceedNow() || isSubmitting}
+                    className="cursor-pointer transition-all hover:brightness-110 active:brightness-90"
+                    style={{ backgroundColor: brandColor }}
+                  >
                     {(() => {
                       const thankYouIdx = form.questions.findIndex((q) => q.type === "THANK_YOU_SCREEN");
                       const lastSubmittableIdx = thankYouIdx >= 0 ? thankYouIdx - 1 : form.questions.length - 1;
