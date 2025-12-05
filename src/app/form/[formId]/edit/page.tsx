@@ -167,6 +167,7 @@ const FormEditorPage = () => {
                 label="Welcome Screen"
                 isSelected={selectedQuestion === welcomeScreen.id}
                 onSelect={() => setSelectedQuestion(welcomeScreen.id)}
+                onUpdate={(updates) => updateQuestion(welcomeScreen.id, updates)}
               />
             )}
 
@@ -177,6 +178,7 @@ const FormEditorPage = () => {
                 label="Informed Consent"
                 isSelected={selectedQuestion === informedConsent.id}
                 onSelect={() => setSelectedQuestion(informedConsent.id)}
+                onUpdate={(updates) => updateQuestion(informedConsent.id, updates)}
               />
             )}
 
@@ -187,6 +189,7 @@ const FormEditorPage = () => {
                 label="Demographics"
                 isSelected={selectedQuestion === demographics.id}
                 onSelect={() => setSelectedQuestion(demographics.id)}
+                onUpdate={(updates) => updateQuestion(demographics.id, updates)}
               />
             )}
 
@@ -199,6 +202,7 @@ const FormEditorPage = () => {
                   isSelected={selectedQuestion === question.id}
                   hasError={invalidQuestions.includes(question.id)}
                   onSelect={() => setSelectedQuestion(question.id)}
+                  onUpdate={(updates) => updateQuestion(question.id, updates)}
                 />
               ))}
             </Reorder.Group>
@@ -216,6 +220,7 @@ const FormEditorPage = () => {
                 label="Thank You Screen"
                 isSelected={selectedQuestion === thankYouScreen.id}
                 onSelect={() => setSelectedQuestion(thankYouScreen.id)}
+                onUpdate={(updates) => updateQuestion(thankYouScreen.id, updates)}
               />
             )}
           </div>

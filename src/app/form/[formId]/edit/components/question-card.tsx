@@ -1,6 +1,7 @@
 "use client";
 
-import type { Question } from "../types";
+import { useState, useEffect } from "react";
+import type { Question, QuestionUpdatePayload } from "../types";
 
 import { Reorder } from "framer-motion";
 import { GripVertical, Type } from "lucide-react";
@@ -13,6 +14,7 @@ interface QuestionCardProps {
   isSelected: boolean;
   hasError?: boolean;
   onSelect: () => void;
+  onUpdate: (updates: QuestionUpdatePayload) => void;
 }
 
 export const QuestionCard = ({
@@ -21,9 +23,21 @@ export const QuestionCard = ({
   isSelected,
   hasError,
   onSelect,
+  onUpdate,
 }: QuestionCardProps) => {
   const typeConfig = questionTypes.find((t) => t.type === question.type);
   const Icon = typeConfig?.icon || Type;
+
+  const [title, setTitle] = useState(question.title);
+  const [description, setDescription] = useState(question.description || "");
+
+  useEffect(() => {
+    setTitle(question.title);
+  }, [question.title]);
+
+  useEffect(() => {
+    setDescription(question.description || "");
+  }, [question.description]);
 
   return (
     <Reorder.Item
@@ -54,14 +68,31 @@ export const QuestionCard = ({
               <span className="text-red-500">*</span>
             )}
           </div>
-          <h3 className={`font-medium ${question.title ? "text-obsidian" : "text-obsidian-muted/60 italic"}`}>
-            {question.title || "Question title"}
-          </h3>
-          {question.description && (
-            <p className="text-sm text-obsidian-muted mt-1">
-              {question.description}
-            </p>
-          )}
+          <input
+            value={title}
+            onChange={(e) => {
+              const newTitle = e.target.value;
+              setTitle(newTitle);
+              onUpdate({ title: newTitle });
+            }}
+            className={`font-medium w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none placeholder:text-gray-300 ${
+              title ? "text-obsidian" : "text-obsidian-muted/60 italic"
+            }`}
+            placeholder="Question title"
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+          <textarea
+            value={description}
+            onChange={(e) => {
+              const newDesc = e.target.value;
+              setDescription(newDesc);
+              onUpdate({ description: newDesc });
+            }}
+            className="text-sm text-obsidian-muted mt-1 w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none resize-none placeholder:text-gray-300"
+            placeholder="Description (optional)"
+            rows={description ? Math.max(2, description.split('\n').length) : 1}
+            onPointerDown={(e) => e.stopPropagation()}
+          />
           {isChoiceType(question.type) && question.options.length > 0 && (
             <div className="mt-3 space-y-1">
               {question.options.map((opt) => (
