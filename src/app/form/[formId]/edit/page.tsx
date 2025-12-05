@@ -12,6 +12,7 @@ import {
   SpecialScreenCard,
   AddQuestionMenu,
   QuestionEditor,
+  ValidationAlert,
 } from "./components";
 import { useFormEditor, useQuestionCrud } from "./hooks";
 
@@ -30,8 +31,65 @@ const FormEditorPage = () => {
     setTitle, setDescription, setBrandColor,
     setArticlesPerSession, setSessionTimeoutMins, setQuotaSettings,
     setDynataEnabled, setDynataReturnUrl, setDynataBasicCode,
-    setForm, fetchForm, togglePublish,
+    setForm, fetchForm, togglePublish, setIsPublished,
   } = useFormEditor(formId);
+
+  const [invalidQuestions, setInvalidQuestions] = useState<string[]>([]);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+
+  const validateForm = () => {
+    if (!form) return true;
+    
+    const issues: string[] = [];
+    
+    form.questions.forEach((q) => {
+      // Skip Welcome/Thank You screens for validation
+      if (q.type === "WELCOME_SCREEN" || q.type === "THANK_YOU_SCREEN") return;
+
+      let isValid = true;
+
+      // Check title
+      if (!q.title || q.title.trim() === "") isValid = false;
+
+      // Check options for choice types
+      if (isValid && (q.type === "MULTIPLE_CHOICE" || q.type === "DROPDOWN" || q.type === "CHECKBOXES")) {
+        if (!q.options || q.options.length === 0) {
+          isValid = false;
+        } else {
+          // Check if any option label is empty
+          const hasEmptyOption = q.options.some(opt => !opt.label || opt.label.trim() === "");
+          if (hasEmptyOption) isValid = false;
+        }
+      }
+
+      if (!isValid) {
+        issues.push(q.id);
+      }
+    });
+
+    setInvalidQuestions(issues);
+    return issues.length === 0;
+  };
+
+  const handlePublishClick = () => {
+    if (isPublished) {
+      // If unpublishing, just do it
+      togglePublish();
+      return;
+    }
+
+    const isValid = validateForm();
+    if (isValid) {
+      togglePublish();
+    } else {
+      setShowValidationAlert(true);
+    }
+  };
+
+  const handlePublishAnyway = () => {
+    setShowValidationAlert(false);
+    togglePublish();
+  };
 
   const { addQuestion, updateQuestion, deleteQuestion, handleReorder } = useQuestionCrud({
     formId, form, setForm, fetchForm, setSelectedQuestion, setShowAddMenu,
@@ -64,8 +122,16 @@ const FormEditorPage = () => {
         isPublished={isPublished}
         onTitleChange={setTitle}
         onToggleSettings={() => setShowSettings(!showSettings)}
-        onTogglePublish={togglePublish}
+        onTogglePublish={handlePublishClick}
       />
+
+      {showValidationAlert && (
+        <ValidationAlert
+          issueCount={invalidQuestions.length}
+          onPublishAnyway={handlePublishAnyway}
+          onDismiss={() => setShowValidationAlert(false)}
+        />
+      )}
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         {showSettings && (
@@ -131,6 +197,7 @@ const FormEditorPage = () => {
                   question={question}
                   index={index}
                   isSelected={selectedQuestion === question.id}
+                  hasError={invalidQuestions.includes(question.id)}
                   onSelect={() => setSelectedQuestion(question.id)}
                 />
               ))}

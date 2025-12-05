@@ -5,3 +5,4 @@ export { QuestionCard } from "./question-card";
 export { SpecialScreenCard } from "./special-screen-card";
 export { AddQuestionMenu } from "./add-question-menu";
 export { QuestionEditor } from "./question-editor";
+export { ValidationAlert } from "./validation-alert";

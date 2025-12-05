@@ -11,6 +11,7 @@ interface QuestionCardProps {
   question: Question;
   index: number;
   isSelected: boolean;
+  hasError?: boolean;
   onSelect: () => void;
 }
 
@@ -18,6 +19,7 @@ export const QuestionCard = ({
   question,
   index,
   isSelected,
+  hasError,
   onSelect,
 }: QuestionCardProps) => {
   const typeConfig = questionTypes.find((t) => t.type === question.type);
@@ -29,6 +31,8 @@ export const QuestionCard = ({
       className={`bg-white rounded-xl border-2 p-6 cursor-grab active:cursor-grabbing transition-colors ${
         isSelected
           ? "border-chili-coral"
+          : hasError
+          ? "border-amber-300 bg-amber-50/30"
           : "border-gray-200 hover:border-gray-300"
       }`}
       onClick={onSelect}
