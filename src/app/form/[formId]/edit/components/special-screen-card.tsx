@@ -50,6 +50,7 @@ export const SpecialScreenCard = ({
       </div>
       <input
         value={title}
+        onFocus={onSelect}
         onChange={(e) => {
           const newTitle = e.target.value;
           setTitle(newTitle);
@@ -60,6 +61,7 @@ export const SpecialScreenCard = ({
       />
       <textarea
         value={description}
+        onFocus={onSelect}
         onChange={(e) => {
           const newDesc = e.target.value;
           setDescription(newDesc);

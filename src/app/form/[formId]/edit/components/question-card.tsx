@@ -79,6 +79,7 @@ export const QuestionCard = ({
           </div>
           <input
             value={title}
+            onFocus={onSelect}
             onChange={(e) => {
               const newTitle = e.target.value;
               setTitle(newTitle);
@@ -92,6 +93,7 @@ export const QuestionCard = ({
           />
           <textarea
             value={description}
+            onFocus={onSelect}
             onChange={(e) => {
               const newDesc = e.target.value;
               setDescription(newDesc);
@@ -112,6 +114,7 @@ export const QuestionCard = ({
                   <div className="w-4 h-4 border border-gray-300 rounded shrink-0" />
                   <input
                     value={opt.label}
+                    onFocus={onSelect}
                     onChange={(e) => {
                       const newLabel = e.target.value;
                       const newOptions = [...options];
