@@ -53,7 +53,7 @@ const FormEditorPage = () => {
       // Specific check for Welcome Screen title
       if (q.type === "WELCOME_SCREEN") {
         if (!q.title || q.title.trim() === "") {
-          issues.push(q.id);
+          // issues.push(q.id); // Don't add to generic "questions incomplete" list if we have a specific error
           generalErrors.push("Welcome screen is missing a title");
         }
         return;
