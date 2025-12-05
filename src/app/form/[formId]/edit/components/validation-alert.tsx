@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowRight, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui";
 
@@ -40,6 +40,8 @@ export const ValidationAlert = ({
     }
   };
 
+  const hasIssues = issueCount > 0 || errors.length > 0;
+
   return (
     <AnimatePresence>
       <motion.div
@@ -48,16 +50,24 @@ export const ValidationAlert = ({
         exit={{ opacity: 0, y: -20 }}
         className="fixed top-20 left-0 right-0 z-50 px-6 pointer-events-none"
       >
-        <div className="max-w-3xl mx-auto bg-amber-50 border border-amber-200 shadow-lg rounded-xl p-4 flex items-center justify-between pointer-events-auto">
+        <div className={`max-w-3xl mx-auto border shadow-lg rounded-xl p-4 flex items-center justify-between pointer-events-auto ${
+          hasIssues ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+              hasIssues ? "bg-amber-100" : "bg-emerald-100"
+            }`}>
+              {hasIssues ? (
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+              ) : (
+                <Check className="w-5 h-5 text-emerald-600" />
+              )}
             </div>
             <div>
-              <h3 className="font-medium text-amber-900">
-                {issueCount > 0 || errors.length > 0 ? "Form is incomplete" : "Ready to publish"}
+              <h3 className={`font-medium ${hasIssues ? "text-amber-900" : "text-emerald-900"}`}>
+                {hasIssues ? "Form is incomplete" : "Ready to publish"}
               </h3>
-              <div className="text-sm text-amber-700">
+              <div className={`text-sm ${hasIssues ? "text-amber-700" : "text-emerald-700"}`}>
                 {errors.length > 0 && (
                    <ul className="list-disc list-inside mb-1">
                      {errors.map((err, i) => (
@@ -73,6 +83,9 @@ export const ValidationAlert = ({
                     Go to first issue <ArrowRight className="w-3 h-3" />
                   </button>
                 )}
+                {!hasIssues && (
+                  <p>All checks passed. Your form is ready to go live.</p>
+                )}
               </div>
             </div>
           </div>
@@ -80,14 +93,21 @@ export const ValidationAlert = ({
             <Button
               variant="ghost"
               onClick={onPublishAnyway}
-              className="text-amber-700 hover:bg-amber-100 hover:text-amber-900"
+              className={hasIssues 
+                ? "text-amber-700 hover:bg-amber-100 hover:text-amber-900"
+                : "text-emerald-700 hover:bg-emerald-100 hover:text-emerald-900"
+              }
             >
-              Publish anyway
+              {hasIssues ? "Publish anyway" : "Publish now"}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <button
               onClick={onDismiss}
-              className="p-2 hover:bg-amber-100 rounded-lg text-amber-500 transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                hasIssues 
+                  ? "hover:bg-amber-100 text-amber-500" 
+                  : "hover:bg-emerald-100 text-emerald-500"
+              }`}
             >
               <X className="w-4 h-4" />
             </button>
