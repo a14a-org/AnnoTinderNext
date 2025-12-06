@@ -2,7 +2,7 @@
 
 import type { Form, Question, QuestionUpdatePayload } from "../types";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 import { DEFAULT_CONSENT_SETTINGS } from "@/features/informed-consent";
 import { DEFAULT_ANNOTATION_SETTINGS } from "@/features/annotation";
@@ -22,7 +22,7 @@ interface UseQuestionCrudOptions {
 
 interface UseQuestionCrudResult {
   addQuestion: (type: string) => Promise<void>;
-  updateQuestion: (questionId: string, updates: QuestionUpdatePayload) => Promise<void>;
+  updateQuestion: (questionId: string, updates: QuestionUpdatePayload) => void;
   deleteQuestion: (questionId: string) => Promise<void>;
   handleReorder: (newOrder: Question[]) => Promise<void>;
 }
@@ -36,12 +36,15 @@ export const useQuestionCrud = ({
   setShowAddMenu,
 }: UseQuestionCrudOptions): UseQuestionCrudResult => {
 
+  const pendingUpdates = useRef<Record<string, QuestionUpdatePayload>>({});
+  const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+
   const addQuestion = useCallback(async (type: string) => {
     const defaultOptions = isChoiceType(type)
       ? [{ label: "Option 1" }, { label: "Option 2" }, { label: "Option 3" }]
       : undefined;
 
-    let defaultTitle = "Your question here";
+    let defaultTitle = "";
     let defaultSettings = undefined;
     let insertAfter = undefined;
 
@@ -81,20 +84,43 @@ export const useQuestionCrud = ({
     setShowAddMenu(false);
   }, [form, formId, fetchForm, setShowAddMenu]);
 
-  const updateQuestion = useCallback(async (questionId: string, updates: QuestionUpdatePayload) => {
-    const { data, error } = await apiPut<Question>(`/api/forms/${formId}/questions/${questionId}`, updates);
+  const updateQuestion = useCallback((questionId: string, updates: QuestionUpdatePayload) => {
+    // 1. Optimistic Update
+    setForm((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        questions: prev.questions.map((q) => q.id === questionId ? { ...q, ...updates } : q),
+      };
+    });
 
-    if (data) {
-      setForm((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          questions: prev.questions.map((q) => q.id === questionId ? { ...q, ...data } : q),
-        };
-      });
-    } else {
-      console.error("Failed to update question:", error);
+    // 2. Merge updates
+    pendingUpdates.current[questionId] = {
+      ...(pendingUpdates.current[questionId] || {}),
+      ...updates
+    };
+
+    // 3. Debounce API call
+    if (saveTimeouts.current[questionId]) {
+      clearTimeout(saveTimeouts.current[questionId]);
     }
+
+    saveTimeouts.current[questionId] = setTimeout(async () => {
+      const payload = pendingUpdates.current[questionId];
+      // Clear pending first to avoid race conditions if new updates come in
+      delete pendingUpdates.current[questionId];
+      delete saveTimeouts.current[questionId];
+
+      if (payload) {
+        const { data, error } = await apiPut<Question>(`/api/forms/${formId}/questions/${questionId}`, payload);
+        
+        if (error) {
+          console.error("Failed to update question:", error);
+          // On error, ideally revert state or fetch fresh data
+          // fetchForm(); // Optional: force sync
+        }
+      }
+    }, 1000);
   }, [formId, setForm]);
 
   const deleteQuestion = useCallback(async (questionId: string) => {

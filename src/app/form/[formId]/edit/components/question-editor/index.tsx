@@ -37,86 +37,152 @@ export const QuestionEditor = ({
   const [options, setOptions] = useState(question.options);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const initialLoadRef = useRef(true);
+
+  // Refs for inputs to check focus before syncing
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
+  const placeholderInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state with props, but only if the input is NOT focused
+  useEffect(() => {
+    if (document.activeElement !== titleInputRef.current) {
+      setTitle(question.title);
+    }
+  }, [question.title]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      initialLoadRef.current = false;
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    if (document.activeElement !== descriptionInputRef.current) {
+      setDescription(question.description || "");
+    }
+  }, [question.description]);
 
   useEffect(() => {
-    if (initialLoadRef.current) return;
+    if (document.activeElement !== placeholderInputRef.current) {
+      setPlaceholder(question.placeholder || "");
+    }
+  }, [question.placeholder]);
 
+  useEffect(() => {
+    setIsRequired(question.isRequired);
+  }, [question.isRequired]);
+
+  useEffect(() => {
+    setOptions(question.options);
+  }, [question.options]);
+
+  // Helper to trigger updates
+  const triggerUpdate = (updates: Partial<QuestionUpdatePayload>) => {
+    // Immediately propagate changes to parent (optimistic update)
+    onUpdate({
+      title,
+      description: description || null,
+      placeholder: placeholder || null,
+      isRequired,
+      options: isChoiceType(question.type)
+        ? options.map((o) => ({ label: o.label, value: o.value }))
+        : undefined,
+      ...updates, // Override with new values
+    });
+
+    // Manage UI feedback "Saving..." -> "Saved"
+    setSaveStatus("saving");
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      setSaveStatus("saving");
-      onUpdate({
-        title,
-        description: description || null,
-        placeholder: placeholder || null,
-        isRequired,
-        options: isChoiceType(question.type)
-          ? options.map((o) => ({ label: o.label, value: o.value }))
-          : undefined,
-      });
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1000);
+  };
 
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [title, description, placeholder, isRequired, options, question.type, onUpdate]);
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    triggerUpdate({ title: val });
+  };
+
+  const handleDescriptionChange = (val: string) => {
+    setDescription(val);
+    triggerUpdate({ description: val || null });
+  };
+
+  const handlePlaceholderChange = (val: string) => {
+    setPlaceholder(val);
+    triggerUpdate({ placeholder: val || null });
+  };
+
+  const handleRequiredChange = (val: boolean) => {
+    setIsRequired(val);
+    triggerUpdate({ isRequired: val });
+  };
+
+  const handleOptionsChange = (newOptions: typeof options) => {
+    setOptions(newOptions);
+    triggerUpdate({ 
+      options: newOptions.map((o) => ({ label: o.label, value: o.value })) 
+    });
+  };
 
   const isScreen = question.type === "WELCOME_SCREEN" || question.type === "THANK_YOU_SCREEN" || question.type === "INFORMED_CONSENT" || question.type === "DEMOGRAPHICS";
+  const isWelcome = question.type === "WELCOME_SCREEN";
   const isInformedConsent = question.type === "INFORMED_CONSENT";
   const isTextAnnotation = question.type === "TEXT_ANNOTATION";
   const isDemographics = question.type === "DEMOGRAPHICS";
 
   const handleConsentSettingsUpdate = (consentSettings: InformedConsentSettings) => {
-    onUpdate({
-      title,
-      description: description || null,
+    triggerUpdate({
       settings: consentSettings as unknown as Record<string, unknown>,
     });
   };
 
   const handleAnnotationSettingsUpdate = (annotationSettings: TextAnnotationSettings) => {
-    onUpdate({
-      title,
-      description: description || null,
+    triggerUpdate({
       settings: annotationSettings as unknown as Record<string, unknown>,
     });
   };
 
   const handleDemographicsSettingsUpdate = (demographicsSettings: DemographicsSettings) => {
-    onUpdate({
-      title,
-      description: description || null,
+    triggerUpdate({
       settings: demographicsSettings as unknown as Record<string, unknown>,
     });
+  };
+
+  const getTitlePlaceholder = () => {
+    if (isWelcome) return "Add a title for your welcome screen";
+    if (isScreen) return "Heading text";
+    return "Your question here";
+  };
+
+  const getDescriptionPlaceholder = () => {
+    if (isWelcome) return "Please take a moment to fill out this form.";
+    return "Optional helper text";
   };
 
   // Special editor for Informed Consent
   if (isInformedConsent) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-obsidian">Edit Informed Consent</h3>
+          <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Consent Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Informed Consent" />
+          <Input 
+            ref={titleInputRef}
+            value={title} 
+            onChange={(e) => handleTitleChange(e.target.value)} 
+            placeholder="Informed Consent" 
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Introduction Text</label>
           <textarea
+            ref={descriptionInputRef}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Brief introduction to the consent form"
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
             rows={2}
@@ -142,13 +208,19 @@ export const QuestionEditor = ({
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Question Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Text Annotation" />
+          <Input 
+            ref={titleInputRef}
+            value={title} 
+            onChange={(e) => handleTitleChange(e.target.value)} 
+            placeholder="Text Annotation" 
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
           <textarea
+            ref={descriptionInputRef}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Instructions for the annotation task"
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
             rows={2}
@@ -159,7 +231,7 @@ export const QuestionEditor = ({
             type="checkbox"
             id="annotation-required"
             checked={isRequired}
-            onChange={(e) => setIsRequired(e.target.checked)}
+            onChange={(e) => handleRequiredChange(e.target.checked)}
             className="rounded border-gray-300 text-chili-coral focus:ring-chili-coral"
           />
           <label htmlFor="annotation-required" className="text-sm text-obsidian">Required</label>
@@ -186,13 +258,19 @@ export const QuestionEditor = ({
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Section Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Demographics" />
+          <Input 
+            ref={titleInputRef}
+            value={title} 
+            onChange={(e) => handleTitleChange(e.target.value)} 
+            placeholder="Demographics" 
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
           <textarea
+            ref={descriptionInputRef}
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Brief introduction to the demographics section"
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
             rows={2}
@@ -231,34 +309,49 @@ export const QuestionEditor = ({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-obsidian mb-1">{isScreen ? "Heading" : "Question"}</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={isScreen ? "Heading text" : "Your question"} />
+        <label className="block text-sm font-medium text-obsidian mb-1">
+          {isWelcome ? "Edit Title" : isScreen ? "Heading" : "Question"}
+        </label>
+        <Input
+          ref={titleInputRef}
+          value={title}
+          onChange={(e) => handleTitleChange(e.target.value)}
+          placeholder={getTitlePlaceholder()}
+        />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
         <textarea
+          ref={descriptionInputRef}
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Optional helper text"
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder={getDescriptionPlaceholder()}
           className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
           rows={2}
         />
       </div>
 
-      {!isScreen && (
+          {!isScreen && (
         <>
-          <div>
-            <label className="block text-sm font-medium text-obsidian mb-1">Placeholder</label>
-            <Input value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} placeholder="Placeholder text" />
-          </div>
+          {["SHORT_TEXT", "LONG_TEXT", "EMAIL", "NUMBER"].includes(question.type) && (
+            <div>
+              <label className="block text-sm font-medium text-obsidian mb-1">Placeholder</label>
+              <Input 
+                ref={placeholderInputRef}
+                value={placeholder} 
+                onChange={(e) => handlePlaceholderChange(e.target.value)} 
+                placeholder="Placeholder text" 
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id="required"
               checked={isRequired}
-              onChange={(e) => setIsRequired(e.target.checked)}
+              onChange={(e) => handleRequiredChange(e.target.checked)}
               className="rounded border-gray-300 text-chili-coral focus:ring-chili-coral"
             />
             <label htmlFor="required" className="text-sm text-obsidian">Required</label>
@@ -275,12 +368,15 @@ export const QuestionEditor = ({
                       onChange={(e) => {
                         const newOptions = [...options];
                         newOptions[index] = { ...option, label: e.target.value, value: e.target.value };
-                        setOptions(newOptions);
+                        handleOptionsChange(newOptions);
                       }}
                       className="flex-1"
                     />
                     <button
-                      onClick={() => setOptions(options.filter((_, i) => i !== index))}
+                      onClick={() => {
+                        const newOptions = options.filter((_, i) => i !== index);
+                        handleOptionsChange(newOptions);
+                      }}
                       className="p-1 hover:bg-gray-100 rounded text-gray-400"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -289,10 +385,11 @@ export const QuestionEditor = ({
                 ))}
                 <button
                   onClick={() => {
-                    setOptions([
+                    const newOptions = [
                       ...options,
                       { id: `new-${Date.now()}`, label: `Option ${options.length + 1}`, value: `Option ${options.length + 1}`, displayOrder: options.length },
-                    ]);
+                    ];
+                    handleOptionsChange(newOptions);
                   }}
                   className="text-sm text-chili-coral hover:underline"
                 >

@@ -31,7 +31,7 @@ export const CheckboxInput = ({
               onChange([...checkboxValue, option.value]);
             }
           }}
-          className={`w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3 ${
+          className={`cursor-pointer w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3 ${
             checkboxValue.includes(option.value)
               ? "border-current bg-opacity-10"
               : "border-gray-200 hover:border-gray-300"

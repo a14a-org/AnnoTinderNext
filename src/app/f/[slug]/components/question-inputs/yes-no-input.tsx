@@ -16,7 +16,7 @@ export const YesNoInput = ({
   <div className="flex gap-4">
     <button
       onClick={() => onChange(true)}
-      className={`flex-1 p-4 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center gap-2 ${
+      className={`cursor-pointer flex-1 p-4 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center gap-2 ${
         value === true
           ? "border-current"
           : "border-gray-200 hover:border-gray-300"
@@ -39,7 +39,7 @@ export const YesNoInput = ({
     </button>
     <button
       onClick={() => onChange(false)}
-      className={`flex-1 p-4 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center gap-2 ${
+      className={`cursor-pointer flex-1 p-4 rounded-lg border-2 text-lg font-medium transition-all flex items-center justify-center gap-2 ${
         value === false
           ? "border-current"
           : "border-gray-200 hover:border-gray-300"

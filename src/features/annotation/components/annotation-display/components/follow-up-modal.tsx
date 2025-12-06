@@ -205,7 +205,7 @@ export const FollowUpModal = ({
             className={`mt-6 w-full py-3 rounded-lg font-medium text-white transition-all ${
               !canSubmit || isSaving
                 ? "bg-gray-300 cursor-not-allowed"
-                : "hover:opacity-90"
+                : "cursor-pointer hover:brightness-110 active:brightness-90"
             }`}
             style={{
               backgroundColor:

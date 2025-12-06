@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
           create: [
             {
               type: "WELCOME_SCREEN",
-              title: `Welcome to ${title}`,
-              description: description || "Please take a moment to fill out this form.",
+              title: "",
+              description: description || "",
               displayOrder: 0,
             },
             {

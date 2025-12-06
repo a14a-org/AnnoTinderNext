@@ -20,7 +20,7 @@ export const ChoiceInput = ({
       <button
         key={option.id}
         onClick={() => onChange(option.value)}
-        className={`w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3 ${
+        className={`cursor-pointer w-full p-4 text-left rounded-lg border-2 transition-all flex items-center gap-3 ${
           value === option.value
             ? "border-current bg-opacity-10"
             : "border-gray-200 hover:border-gray-300"

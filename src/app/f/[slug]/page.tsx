@@ -8,7 +8,7 @@ import type { AssignedArticle, SessionData } from "./types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Check, ChevronRight, Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button } from "@/components/ui";
@@ -32,7 +32,9 @@ import { useFormData, useUrlParams, useFormAnswers, useFormNavigation } from "./
 
 const PublicFormPage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const isPreview = searchParams.get("preview") === "true";
 
   // Custom hooks for form management
   const { form, isLoading, error: loadError } = useFormData(slug);
@@ -112,7 +114,7 @@ const PublicFormPage = () => {
 
     // Create session
     const sessionResult = await apiPost<{ session: SessionData }>(
-      `/api/forms/${form.id}/session`,
+      `/api/forms/${form.id}/session${isPreview ? "?preview=true" : ""}`,
       { externalPid, returnUrl }
     );
 
@@ -131,7 +133,7 @@ const PublicFormPage = () => {
 
     // Assign articles
     const assignResult = await apiPost<{ articles: AssignedArticle[]; session: SessionData }>(
-      `/api/forms/${form.id}/session/assign`,
+      `/api/forms/${form.id}/session/assign${isPreview ? "?preview=true" : ""}`,
       { sessionToken: sessionData.session.sessionToken, demographics: demographicAnswers }
     );
 
@@ -157,7 +159,7 @@ const PublicFormPage = () => {
     setSession(assignResult.data.session);
     navigateTo(currentIndex + 1, 1);
     setIsProcessingDemographics(false);
-  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer]);
+  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview]);
 
   // Annotation handler
   const handleAnnotationComplete = useCallback(async (annotations: Annotation[]) => {
@@ -173,7 +175,7 @@ const PublicFormPage = () => {
 
     if (shouldSubmit) {
       setIsSubmitting(true);
-      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}${isPreview ? "?preview=true" : ""}`, {
         answers: newAnswers,
         startedAt,
         sessionToken: session?.sessionToken,
@@ -192,7 +194,7 @@ const PublicFormPage = () => {
     if (currentIndex < form.questions.length - 1) {
       navigateTo(currentIndex + 1, 1);
     }
-  }, [activeQuestion, form, currentIndex, answers, isSubmitted, slug, startedAt, session, navigateTo, setAnswers]);
+  }, [activeQuestion, form, currentIndex, answers, isSubmitted, slug, startedAt, session, navigateTo, setAnswers, isPreview]);
 
   // Submit/next handler
   const goNext = useCallback(async () => {
@@ -204,7 +206,7 @@ const PublicFormPage = () => {
 
     if (isLastQuestion && !isSubmitted) {
       setIsSubmitting(true);
-      const { ok, error } = await apiPost(`/api/forms/public/${slug}`, {
+      const { ok, error } = await apiPost(`/api/forms/public/${slug}${isPreview ? "?preview=true" : ""}`, {
         answers,
         startedAt,
         sessionToken: session?.sessionToken,
@@ -223,7 +225,7 @@ const PublicFormPage = () => {
     if (currentIndex < form.questions.length - 1) {
       navigateTo(currentIndex + 1, 1);
     }
-  }, [form, currentIndex, answers, startedAt, slug, canProceedNow, isSubmitted, session, navigateTo]);
+  }, [form, currentIndex, answers, startedAt, slug, canProceedNow, isSubmitted, session, navigateTo, isPreview]);
 
   // Focus input when question changes
   useEffect(() => {
@@ -360,7 +362,11 @@ const PublicFormPage = () => {
               <div className="text-center">
                 <h1 className="text-4xl font-display font-bold text-obsidian mb-4">{activeQuestion.title}</h1>
                 {activeQuestion.description && <p className="text-lg text-obsidian-muted mb-8">{activeQuestion.description}</p>}
-                <Button onClick={goNext} className="text-lg px-8 py-3" style={{ backgroundColor: brandColor }}>
+                <Button
+                  onClick={goNext}
+                  className="text-lg px-8 py-3 cursor-pointer transition-all hover:brightness-110 active:brightness-90"
+                  style={{ backgroundColor: brandColor }}
+                >
                   {form.buttonText || "Start"}
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
@@ -440,7 +446,12 @@ const PublicFormPage = () => {
                 />
 
                 <div className="mt-8">
-                  <Button onClick={goNext} disabled={!canProceedNow() || isSubmitting} style={{ backgroundColor: brandColor }}>
+                  <Button
+                    onClick={goNext}
+                    disabled={!canProceedNow() || isSubmitting}
+                    className="cursor-pointer transition-all hover:brightness-110 active:brightness-90"
+                    style={{ backgroundColor: brandColor }}
+                  >
                     {(() => {
                       const thankYouIdx = form.questions.findIndex((q) => q.type === "THANK_YOU_SCREEN");
                       const lastSubmittableIdx = thankYouIdx >= 0 ? thankYouIdx - 1 : form.questions.length - 1;

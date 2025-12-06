@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Reorder } from "framer-motion";
 import { Heart, Loader2, Play, ShieldCheck, Users } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   SpecialScreenCard,
   AddQuestionMenu,
   QuestionEditor,
+  ValidationAlert,
 } from "./components";
 import { useFormEditor, useQuestionCrud } from "./hooks";
 
@@ -30,8 +31,93 @@ const FormEditorPage = () => {
     setTitle, setDescription, setBrandColor,
     setArticlesPerSession, setSessionTimeoutMins, setQuotaSettings,
     setDynataEnabled, setDynataReturnUrl, setDynataBasicCode,
-    setForm, fetchForm, togglePublish,
+    setForm, fetchForm, togglePublish, setIsPublished,
   } = useFormEditor(formId);
+
+  const [invalidQuestions, setInvalidQuestions] = useState<string[]>([]);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const validateForm = () => {
+    if (!form) return true;
+    
+    const issues: string[] = [];
+    const generalErrors: string[] = [];
+
+    // Check form title
+    if (!title || title.trim() === "") {
+      generalErrors.push("Form is missing a title");
+    }
+    
+    form.questions.forEach((q) => {
+      // Specific check for Welcome Screen title
+      if (q.type === "WELCOME_SCREEN") {
+        if (!q.title || q.title.trim() === "") {
+          // issues.push(q.id); // Don't add to generic "questions incomplete" list if we have a specific error
+          generalErrors.push("Welcome screen is missing a title");
+        }
+        return;
+      }
+
+      // Skip Thank You screen for validation
+      if (q.type === "THANK_YOU_SCREEN") return;
+
+      let isValid = true;
+
+      // Check title
+      if (!q.title || q.title.trim() === "") isValid = false;
+
+      // Check options for choice types
+      if (isValid && (q.type === "MULTIPLE_CHOICE" || q.type === "DROPDOWN" || q.type === "CHECKBOXES")) {
+        if (!q.options || q.options.length === 0) {
+          isValid = false;
+        } else {
+          // Check if any option label is empty
+          const hasEmptyOption = q.options.some(opt => !opt.label || opt.label.trim() === "");
+          if (hasEmptyOption) isValid = false;
+        }
+      }
+
+      if (!isValid) {
+        issues.push(q.id);
+      }
+    });
+
+    if (issues.length > 0) {
+      generalErrors.push(`${issues.length} ${issues.length === 1 ? "question is" : "questions are"} incomplete`);
+    }
+
+    setInvalidQuestions(issues);
+    setValidationErrors(generalErrors);
+    return issues.length === 0 && generalErrors.length === 0;
+  };
+
+  // Re-validate when form updates if alert is visible
+  useEffect(() => {
+    if (showValidationAlert) {
+      validateForm();
+    }
+  }, [form, title, showValidationAlert]);
+
+  const handlePublishClick = () => {
+    if (isPublished) {
+      // If unpublishing, just do it
+      togglePublish();
+      return;
+    }
+
+    const isValid = validateForm();
+    if (isValid) {
+      togglePublish();
+    } else {
+      setShowValidationAlert(true);
+    }
+  };
+
+  const handlePublishAnyway = () => {
+    setShowValidationAlert(false);
+    togglePublish();
+  };
 
   const { addQuestion, updateQuestion, deleteQuestion, handleReorder } = useQuestionCrud({
     formId, form, setForm, fetchForm, setSelectedQuestion, setShowAddMenu,
@@ -64,8 +150,19 @@ const FormEditorPage = () => {
         isPublished={isPublished}
         onTitleChange={setTitle}
         onToggleSettings={() => setShowSettings(!showSettings)}
-        onTogglePublish={togglePublish}
+        onTogglePublish={handlePublishClick}
       />
+
+      {showValidationAlert && (
+        <ValidationAlert
+          issueCount={invalidQuestions.length}
+          errors={validationErrors}
+          invalidQuestions={invalidQuestions}
+          onPublishAnyway={handlePublishAnyway}
+          onDismiss={() => setShowValidationAlert(false)}
+          onSelectQuestion={setSelectedQuestion}
+        />
+      )}
 
       <main className="max-w-5xl mx-auto px-6 py-8">
         {showSettings && (
@@ -93,14 +190,23 @@ const FormEditorPage = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
+          <div 
+            className="lg:col-span-2 space-y-4 min-h-[500px]"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setSelectedQuestion(null);
+              }
+            }}
+          >
             {welcomeScreen && (
               <SpecialScreenCard
                 question={welcomeScreen}
                 icon={Play}
                 label="Welcome Screen"
                 isSelected={selectedQuestion === welcomeScreen.id}
+                hasError={invalidQuestions.includes(welcomeScreen.id)}
                 onSelect={() => setSelectedQuestion(welcomeScreen.id)}
+                onUpdate={(updates) => updateQuestion(welcomeScreen.id, updates)}
               />
             )}
 
@@ -110,7 +216,9 @@ const FormEditorPage = () => {
                 icon={ShieldCheck}
                 label="Informed Consent"
                 isSelected={selectedQuestion === informedConsent.id}
+                hasError={invalidQuestions.includes(informedConsent.id)}
                 onSelect={() => setSelectedQuestion(informedConsent.id)}
+                onUpdate={(updates) => updateQuestion(informedConsent.id, updates)}
               />
             )}
 
@@ -120,7 +228,9 @@ const FormEditorPage = () => {
                 icon={Users}
                 label="Demographics"
                 isSelected={selectedQuestion === demographics.id}
+                hasError={invalidQuestions.includes(demographics.id)}
                 onSelect={() => setSelectedQuestion(demographics.id)}
+                onUpdate={(updates) => updateQuestion(demographics.id, updates)}
               />
             )}
 
@@ -131,7 +241,9 @@ const FormEditorPage = () => {
                   question={question}
                   index={index}
                   isSelected={selectedQuestion === question.id}
+                  hasError={invalidQuestions.includes(question.id)}
                   onSelect={() => setSelectedQuestion(question.id)}
+                  onUpdate={(updates) => updateQuestion(question.id, updates)}
                 />
               ))}
             </Reorder.Group>
@@ -148,7 +260,9 @@ const FormEditorPage = () => {
                 icon={Heart}
                 label="Thank You Screen"
                 isSelected={selectedQuestion === thankYouScreen.id}
+                hasError={invalidQuestions.includes(thankYouScreen.id)}
                 onSelect={() => setSelectedQuestion(thankYouScreen.id)}
+                onUpdate={(updates) => updateQuestion(thankYouScreen.id, updates)}
               />
             )}
           </div>
