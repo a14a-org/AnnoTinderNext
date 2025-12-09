@@ -90,7 +90,19 @@ export const useQuestionCrud = ({
       if (!prev) return prev;
       return {
         ...prev,
-        questions: prev.questions.map((q) => q.id === questionId ? { ...q, ...updates } : q),
+        questions: prev.questions.map((q) => {
+          if (q.id !== questionId) return q;
+          // Handle options transformation for optimistic update
+          const updatedOptions = updates.options
+            ? updates.options.map((opt, idx) => ({
+                id: q.options[idx]?.id ?? `temp-${idx}`,
+                label: opt.label,
+                value: opt.value,
+                displayOrder: q.options[idx]?.displayOrder ?? idx,
+              }))
+            : q.options;
+          return { ...q, ...updates, options: updatedOptions };
+        }),
       };
     });
 
