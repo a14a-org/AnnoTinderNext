@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient } from "../src/generated/prisma";
-import { DEFAULT_QUOTA_SETTINGS, QuotaSettings } from "../src/lib/quota-settings";
+import { DEFAULT_QUOTA_SETTINGS, QuotaSettings } from "../src/features/quota";
 
 const prisma = new PrismaClient();
 
