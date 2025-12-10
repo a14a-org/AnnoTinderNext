@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
 
-export async function middleware(req: NextRequest) {
+const { auth } = NextAuth(authConfig);
+
+export default auth(async function middleware(req) {
   const { pathname } = req.nextUrl;
-
-  // Get the JWT token (works in edge runtime without Prisma)
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  const isAuthenticated = !!token;
+  const isAuthenticated = !!req.auth;
 
   // Protected routes that require authentication
   const protectedPatterns = [
@@ -37,7 +36,7 @@ export async function middleware(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
