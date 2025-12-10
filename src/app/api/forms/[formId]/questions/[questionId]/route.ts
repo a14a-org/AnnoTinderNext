@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 
-// PUT - Update a question
+// PUT - Update a question (requires ownership)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string; questionId: string }> }
 ) {
   try {
     const { formId, questionId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const body = await request.json();
     const { type, title, description, placeholder, isRequired, settings, options } =
       body;
-
-    // Verify form exists
-    const form = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
 
     // Verify question exists in this form
     const existingQuestion = await db.question.findFirst({
@@ -97,22 +92,15 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete a question
+// DELETE - Delete a question (requires ownership)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string; questionId: string }> }
 ) {
   try {
     const { formId, questionId } = await params;
-
-    // Verify form exists
-    const form = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
     // Verify question exists in this form
     const question = await db.question.findFirst({

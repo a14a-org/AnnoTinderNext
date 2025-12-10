@@ -3,6 +3,7 @@ import type { QuotaSettings } from "@/features/quota";
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 import {
   DEFAULT_QUOTA_SETTINGS,
   parseQuotaCounts,
@@ -86,13 +87,15 @@ const parseCSV = (csvContent: string): Array<{ text: string; shortId: string }> 
     .filter((article): article is { text: string; shortId: string } => article !== null);
 };
 
-// GET - List articles for a form
+// GET - List articles for a form (requires ownership)
 export const GET = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) => {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
     const articles = await db.article.findMany({
       where: { formId },
@@ -147,15 +150,18 @@ export const GET = async (
   }
 };
 
-// POST - Import articles from CSV
+// POST - Import articles from CSV (requires ownership)
 export const POST = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) => {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const body = await request.json();
-    const { csv, replaceExisting = false } = body;
+    const { csv, replaceExisting = false, assignmentStrategy, jobSetSize: rawJobSetSize } = body;
 
     if (!csv || typeof csv !== "string") {
       return NextResponse.json(
@@ -164,19 +170,23 @@ export const POST = async (
       );
     }
 
-    // Verify form exists
+    // Verify form exists and get current settings
     const form = await db.form.findUnique({
       where: { id: formId },
+      select: { id: true, assignmentStrategy: true, articlesPerSession: true },
     });
 
     if (!form) {
       return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
+    const currentAssignmentStrategy = (assignmentStrategy || form.assignmentStrategy || "INDIVIDUAL") as "INDIVIDUAL" | "JOB_SET";
+    const effectiveJobSetSize = currentAssignmentStrategy === "JOB_SET" ? (rawJobSetSize || form.articlesPerSession || 3) : 1;
+
     // Parse CSV
-    let articles;
+    let parsedArticles;
     try {
-      articles = parseCSV(csv);
+      parsedArticles = parseCSV(csv);
     } catch (parseError) {
       return NextResponse.json(
         { error: parseError instanceof Error ? parseError.message : "Failed to parse CSV" },
@@ -184,47 +194,115 @@ export const POST = async (
       );
     }
 
-    if (articles.length === 0) {
+    if (parsedArticles.length === 0) {
       return NextResponse.json(
         { error: "No valid articles found in CSV" },
         { status: 400 }
       );
     }
 
-    // Optionally delete existing articles
-    if (replaceExisting) {
-      await db.article.deleteMany({
-        where: { formId },
-      });
-    }
+    // Deduplicate parsed articles based on shortId and text
+    const uniqueArticlesMap = new Map<string, { text: string; shortId: string }>();
+    parsedArticles.forEach(article => {
+        const key = `${article.shortId}-${article.text}`; // Composite key for deduplication
+        if (!uniqueArticlesMap.has(key)) {
+            uniqueArticlesMap.set(key, article);
+        }
+    });
+    const uniqueArticles = Array.from(uniqueArticlesMap.values());
 
-    // Insert articles (upsert to handle duplicates)
-    const results = await Promise.all(
-      articles.map((article) =>
-        db.article.upsert({
-          where: {
-            formId_shortId: {
+    // Transaction to ensure atomicity
+    const results = await db.$transaction(async (tx) => {
+      // If replaceExisting, delete all articles AND job sets for this form
+      if (replaceExisting) {
+        await tx.article.deleteMany({ where: { formId } });
+        await tx.jobSet.deleteMany({ where: { formId } });
+      }
+
+      let importedCount = 0;
+
+      if (currentAssignmentStrategy === "JOB_SET") {
+        // Update Form's articlesPerSession and assignmentStrategy to match import settings
+        await tx.form.update({
+          where: { id: formId },
+          data: {
+            articlesPerSession: effectiveJobSetSize,
+            assignmentStrategy: "JOB_SET",
+          },
+        });
+
+        // Group unique articles into job sets
+        const jobSetsToCreate = [];
+        for (let i = 0; i < uniqueArticles.length; i += effectiveJobSetSize) {
+          const jobSetArticles = uniqueArticles.slice(i, i + effectiveJobSetSize);
+          if (jobSetArticles.length > 0) {
+            jobSetsToCreate.push({
+              formId,
+              shortId: `set-${Math.floor(i / effectiveJobSetSize) + 1}`,
+              articles: {
+                createMany: {
+                  data: jobSetArticles.map(article => ({
+                    shortId: article.shortId,
+                    text: article.text,
+                    formId: formId, // Explicitly set formId for articles
+                  })),
+                },
+              },
+            });
+          }
+        }
+
+        // Create JobSets and nested Articles
+        for (const jobSetData of jobSetsToCreate) {
+          await tx.jobSet.create({
+            data: {
+              formId: jobSetData.formId,
+              shortId: jobSetData.shortId,
+              articles: jobSetData.articles,
+            },
+          });
+          importedCount += jobSetData.articles.createMany.data.length;
+        }
+
+      } else { // INDIVIDUAL assignmentStrategy
+        // Update Form's assignmentStrategy to match import settings
+        await tx.form.update({
+          where: { id: formId },
+          data: { assignmentStrategy: "INDIVIDUAL" },
+        });
+
+        // Upsert articles (create or update based on shortId)
+        for (const article of uniqueArticles) {
+          await tx.article.upsert({
+            where: {
+              formId_shortId: {
+                formId,
+                shortId: article.shortId,
+              },
+            },
+            create: {
               formId,
               shortId: article.shortId,
+              text: article.text,
+              jobSetId: null, // Ensure jobSetId is null for individual articles
             },
-          },
-          create: {
-            formId,
-            shortId: article.shortId,
-            text: article.text,
-          },
-          update: {
-            text: article.text,
-          },
-        })
-      )
-    );
+            update: {
+              text: article.text,
+              jobSetId: null, // explicit null on update to remove from any previous job set
+            },
+          });
+          importedCount++;
+        }
+      }
 
+      return { importedCount };
+    });
+    
     return NextResponse.json(
       {
         success: true,
-        imported: results.length,
-        message: `Successfully imported ${results.length} articles`,
+        imported: results.importedCount,
+        message: `Successfully imported ${results.importedCount} articles`,
       },
       { status: 201 }
     );
@@ -237,13 +315,15 @@ export const POST = async (
   }
 };
 
-// DELETE - Remove all articles for a form
+// DELETE - Remove all articles for a form (requires ownership)
 export const DELETE = async (
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) => {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
     const deleted = await db.article.deleteMany({
       where: { formId },

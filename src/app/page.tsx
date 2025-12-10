@@ -8,11 +8,13 @@ import {
   Eye,
   FileText,
   Loader2,
+  LogOut,
   MoreHorizontal,
   Plus,
   Trash2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 import { Button } from "@/components/ui";
 import { apiGet, apiPost, apiDelete } from "@/lib/api";
@@ -47,12 +49,24 @@ const CreateFormTrigger = ({ onTrigger, isLoading }: { onTrigger: () => void; is
 
 const FormsPage = () => {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [forms, setForms] = useState<Form[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
 
   useEffect(() => {
+    // Redirect to sign-in if not authenticated
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+      return;
+    }
+
+    // Don't fetch forms until we know we're authenticated
+    if (status !== "authenticated") {
+      return;
+    }
+
     const fetchForms = async () => {
       const { data, error } = await apiGet<Form[]>("/api/forms");
       if (data) {
@@ -63,7 +77,7 @@ const FormsPage = () => {
       setIsLoading(false);
     };
     fetchForms();
-  }, []);
+  }, [status, router]);
 
   const handleCreateForm = async () => {
     setIsCreating(true);
@@ -97,6 +111,15 @@ const FormsPage = () => {
     setMenuOpen(null);
   };
 
+  // Show loading while checking auth status
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-chili-coral" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-canvas">
       <Suspense fallback={null}>
@@ -112,6 +135,20 @@ const FormsPage = () => {
             </div>
             <span className="font-display font-bold text-obsidian">ChiliForm</span>
           </div>
+          {session?.user && (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-obsidian-muted">
+                {session.user.email}
+              </span>
+              <button
+                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-obsidian-muted hover:text-obsidian rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

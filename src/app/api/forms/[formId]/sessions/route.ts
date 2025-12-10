@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { logError } from "@/lib/logger";
+import { requireFormOwnership } from "@/lib/auth";
 
 /**
- * GET - Fetch sessions with stats for the Sessions Dashboard
+ * GET - Fetch sessions with stats for the Sessions Dashboard (requires ownership)
  *
  * Query params:
  *   status: "all" | "completed" | "in_progress" | "screened_out" (default: "all")
@@ -21,12 +23,15 @@ export async function GET(
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get("status") || "all";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
-    // Verify form exists
+    // Get form details
     const form = await db.form.findUnique({
       where: { id: formId },
       select: { id: true, title: true },
@@ -151,7 +156,7 @@ export async function GET(
       filter: statusFilter,
     });
   } catch (error) {
-    console.error("Failed to fetch sessions:", error);
+    logError("Failed to fetch sessions:", error);
     return NextResponse.json(
       { error: "Failed to fetch sessions" },
       { status: 500 }

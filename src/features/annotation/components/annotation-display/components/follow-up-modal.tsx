@@ -11,6 +11,7 @@ interface FollowUpModalProps {
   settings: TextAnnotationSettings;
   followUpAnswers: Record<string, string | number | null>;
   isSaving: boolean;
+  isTimeCompleted?: boolean;
   onClearSelection: () => void;
   onFollowUpSubmit: () => void;
   setFollowUpAnswers: (answers: Record<string, string | number | null> | ((prev: Record<string, string | number | null>) => Record<string, string | number | null>)) => void;
@@ -25,6 +26,7 @@ export const FollowUpModal = ({
   settings,
   followUpAnswers,
   isSaving,
+  isTimeCompleted = true,
   onClearSelection,
   onFollowUpSubmit,
   setFollowUpAnswers,
@@ -201,15 +203,15 @@ export const FollowUpModal = ({
           {/* Submit button */}
           <button
             onClick={onFollowUpSubmit}
-            disabled={!canSubmit || isSaving}
+            disabled={!canSubmit || isSaving || !isTimeCompleted}
             className={`mt-6 w-full py-3 rounded-lg font-medium text-white transition-all ${
-              !canSubmit || isSaving
+              !canSubmit || isSaving || !isTimeCompleted
                 ? "bg-gray-300 cursor-not-allowed"
                 : "cursor-pointer hover:brightness-110 active:brightness-90"
             }`}
             style={{
               backgroundColor:
-                canSubmit && !isSaving ? brandColor : undefined,
+                canSubmit && !isSaving && isTimeCompleted ? brandColor : undefined,
             }}
           >
             {getSubmitButtonText()}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { logError } from "@/lib/logger";
 
 /**
  * POST - Create a new session or resume existing one
@@ -107,7 +108,7 @@ export async function POST(
       resumed: false,
     });
   } catch (error) {
-    console.error("Failed to create/resume session:", error);
+    logError("Failed to create/resume session:", error);
     return NextResponse.json(
       { error: "Failed to create session" },
       { status: 500 }
@@ -167,7 +168,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Failed to get session:", error);
+    logError("Failed to get session:", error);
     return NextResponse.json(
       { error: "Failed to get session" },
       { status: 500 }

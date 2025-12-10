@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { logError } from "@/lib/logger";
 import { buildDynataRedirectFromForm } from "@/lib/dynata";
 import { parseQuotaCounts } from "@/features/quota";
 
@@ -33,12 +34,15 @@ export async function POST(
       );
     }
 
-    // Get session with annotations
+    // Get session with annotations and jobSet
     const session = await db.annotationSession.findUnique({
       where: { sessionToken },
       include: {
         annotations: {
           select: { articleId: true },
+        },
+        jobSet: {
+          select: { id: true, quotaCounts: true }, // Include jobSet if exists
         },
       },
     });
@@ -50,29 +54,43 @@ export async function POST(
       );
     }
 
-    // Get form settings for Dynata redirect
+    // Get form settings for Dynata redirect and assignment strategy
     const form = await db.form.findUnique({
       where: { id: formId },
       select: {
         dynataEnabled: true,
         dynataReturnUrl: true,
         dynataBasicCode: true,
+        assignmentStrategy: true,
       },
     });
+
+    if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 });
+    }
 
     // Check if already completed
     if (session.status === "completed") {
       return NextResponse.json({
         success: true,
         alreadyCompleted: true,
-        returnUrl: form ? buildDynataRedirectFromForm(form, session, "complete") : null,
+        returnUrl: buildDynataRedirectFromForm(form, session, "complete"),
       });
     }
 
     // Verify all articles annotated
-    const assignedIds: string[] = session.assignedArticleIds
-      ? JSON.parse(session.assignedArticleIds)
-      : [];
+    let assignedIds: string[] = [];
+    if (form.assignmentStrategy === "INDIVIDUAL" && session.assignedArticleIds) {
+      assignedIds = JSON.parse(session.assignedArticleIds);
+    } else if (form.assignmentStrategy === "JOB_SET" && session.jobSetId && session.jobSet) {
+      // For JobSet mode, assignedIds are not stored on session directly, but we can verify annotations
+      const jobSetArticles = await db.article.findMany({
+        where: { jobSetId: session.jobSetId },
+        select: { id: true }
+      });
+      assignedIds = jobSetArticles.map(a => a.id);
+    }
+
     const annotatedIds = session.annotations.map((a) => a.articleId);
 
     if (annotatedIds.length < session.articlesRequired) {
@@ -97,28 +115,42 @@ export async function POST(
 
     // Use a transaction to ensure consistency
     await db.$transaction(async (tx) => {
-      // Increment quota for each assigned article using flexible quotaCounts
-      await Promise.all(
-        assignedIds.map(async (articleId) => {
-          // Get current quota counts
-          const article = await tx.article.findUnique({
-            where: { id: articleId },
-            select: { quotaCounts: true },
-          });
+      if (form.assignmentStrategy === "JOB_SET" && session.jobSetId && session.jobSet) {
+        // Update quota on the JobSet
+        const jobSet = session.jobSet;
+        const quotaCounts = parseQuotaCounts(jobSet.quotaCounts);
+        quotaCounts[demographicGroup] = (quotaCounts[demographicGroup] || 0) + 1;
 
-          if (article) {
-            const quotaCounts = parseQuotaCounts(article.quotaCounts);
-            quotaCounts[demographicGroup] = (quotaCounts[demographicGroup] || 0) + 1;
-
-            await tx.article.update({
+        await tx.jobSet.update({
+          where: { id: jobSet.id },
+          data: {
+            quotaCounts: JSON.stringify(quotaCounts),
+          },
+        });
+      } else {
+        // Existing logic for INDIVIDUAL assignmentStrategy: Increment quota for each assigned article
+        await Promise.all(
+          assignedIds.map(async (articleId) => {
+            // Get current quota counts
+            const article = await tx.article.findUnique({
               where: { id: articleId },
-              data: {
-                quotaCounts: JSON.stringify(quotaCounts),
-              },
+              select: { quotaCounts: true },
             });
-          }
-        })
-      );
+
+            if (article) {
+              const quotaCounts = parseQuotaCounts(article.quotaCounts);
+              quotaCounts[demographicGroup] = (quotaCounts[demographicGroup] || 0) + 1;
+
+              await tx.article.update({
+                where: { id: articleId },
+                data: {
+                  quotaCounts: JSON.stringify(quotaCounts),
+                },
+              });
+            }
+          })
+        );
+      }
 
       // Mark session as completed
       await tx.annotationSession.update({
@@ -132,7 +164,7 @@ export async function POST(
     });
 
     // Build Dynata redirect URL
-    const returnUrl = form ? buildDynataRedirectFromForm(form, session, "complete") : null;
+    const returnUrl = buildDynataRedirectFromForm(form, session, "complete");
 
     return NextResponse.json({
       success: true,
@@ -141,7 +173,7 @@ export async function POST(
       returnUrl,
     });
   } catch (error) {
-    console.error("Failed to complete session:", error);
+    logError("Failed to complete session:", error);
     return NextResponse.json(
       { error: "Failed to complete session" },
       { status: 500 }

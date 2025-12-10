@@ -3,13 +3,14 @@ import type { QuotaSettings } from "@/features/quota";
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 import {
   DEFAULT_QUOTA_SETTINGS,
   parseQuotaCounts,
 } from "@/features/quota";
 
 /**
- * GET - Get quota status overview for a form
+ * GET - Get quota status overview for a form (requires ownership)
  *
  * Returns:
  * - Total articles
@@ -23,6 +24,9 @@ export async function GET(
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
     const detailed = searchParams.get("detailed") === "true";
 

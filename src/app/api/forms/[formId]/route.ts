@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 
-// GET - Fetch single form with questions
+// GET - Fetch single form with questions (requires ownership)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
     const form = await db.form.findFirst({
       where: { id: formId },
@@ -50,13 +53,16 @@ export async function GET(
   }
 }
 
-// PUT - Update form
+// PUT - Update form (requires ownership)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const body = await request.json();
     const {
       title,
@@ -71,20 +77,12 @@ export async function PUT(
       articlesPerSession,
       sessionTimeoutMins,
       quotaSettings,
+      assignmentStrategy,
       // Dynata settings
       dynataEnabled,
       dynataReturnUrl,
       dynataBasicCode,
     } = body;
-
-    // Verify form exists
-    const existingForm = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!existingForm) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
 
     // Handle quota settings - can be passed as object or string
     let quotaSettingsJson: string | undefined;
@@ -109,6 +107,7 @@ export async function PUT(
         ...(articlesPerSession !== undefined && { articlesPerSession }),
         ...(sessionTimeoutMins !== undefined && { sessionTimeoutMins }),
         ...(quotaSettingsJson !== undefined && { quotaSettings: quotaSettingsJson }),
+        ...(assignmentStrategy !== undefined && { assignmentStrategy }),
         // Dynata settings
         ...(dynataEnabled !== undefined && { dynataEnabled }),
         ...(dynataReturnUrl !== undefined && { dynataReturnUrl }),
@@ -148,22 +147,15 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete form
+// DELETE - Delete form (requires ownership)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
-
-    // Verify form exists
-    const form = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
     await db.form.delete({
       where: { id: formId },

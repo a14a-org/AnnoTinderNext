@@ -5,7 +5,7 @@ import type { AnnotationDisplayProps } from "./types";
 
 import { useCallback, useMemo } from "react";
 
-import { useAnnotationState, useSegmentSelection, useAnnotationApi } from "./hooks";
+import { useAnnotationState, useSegmentSelection, useAnnotationApi, useMinimumTime } from "./hooks";
 import { PracticePhase, TransitionPhase, AnnotationPhase } from "./components";
 import { splitIntoSegments } from "./utils/segment-utils";
 
@@ -34,6 +34,9 @@ export const AnnotationDisplay = ({
     transitionToMain,
   } = useAnnotationState(settings);
 
+  // Timer for minimum time on page (TODO: Make configurable in settings)
+  const { isCompleted: isTimeCompleted, timeLeft, resetTimer } = useMinimumTime(5);
+
   // Split text based on selection mode
   const segments = useMemo(() => {
     return splitIntoSegments(currentText, settings.selectionMode);
@@ -59,7 +62,8 @@ export const AnnotationDisplay = ({
   // Handle transition to main phase
   const handleStartMain = useCallback(() => {
     resetForMainPhase();
-  }, [resetForMainPhase]);
+    resetTimer(); // Reset timer for first main text
+  }, [resetForMainPhase, resetTimer]);
 
   const handleFollowUpSubmit = useCallback(async () => {
     if (!selectedText || !selectedIndices || !currentText) return;
@@ -85,6 +89,8 @@ export const AnnotationDisplay = ({
 
     // Move to next text or complete/transition
     const isDone = nextText();
+    resetTimer(); // Reset timer for next text
+    
     if (isDone) {
       if (phase === "practice") {
         // Show transition screen before main phase
@@ -115,6 +121,7 @@ export const AnnotationDisplay = ({
     setAnnotations,
     nextText,
     transitionToMain,
+    resetTimer,
   ]);
 
   const handleSkip = useCallback(async () => {
@@ -140,6 +147,8 @@ export const AnnotationDisplay = ({
     setAnnotations(newAnnotations);
 
     const isDone = nextText();
+    resetTimer(); // Reset timer for next text
+
     if (isDone) {
       if (phase === "practice") {
         // Show transition screen before main phase
@@ -167,6 +176,7 @@ export const AnnotationDisplay = ({
     setAnnotations,
     nextText,
     transitionToMain,
+    resetTimer,
   ]);
 
   const handleClearSelection = useCallback(() => {
@@ -204,6 +214,8 @@ export const AnnotationDisplay = ({
     showFollowUp,
     followUpAnswers,
     isSaving,
+    isTimeCompleted,
+    timeLeft,
     onSegmentClick: handleSegmentClick,
     onClearSelection: handleClearSelection,
     onFollowUpSubmit: handleFollowUpSubmit,

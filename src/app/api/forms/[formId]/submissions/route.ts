@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 
-// GET - List all submissions for a form
+// GET - List all submissions for a form (requires ownership)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
 
-    // Verify form exists
+    // Get form with questions
     const form = await db.form.findFirst({
       where: { id: formId },
       include: {
@@ -104,13 +107,16 @@ export async function GET(
   }
 }
 
-// DELETE - Delete a submission
+// DELETE - Delete a submission (requires ownership)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const { searchParams } = new URL(request.url);
     const submissionId = searchParams.get("submissionId");
 
@@ -119,15 +125,6 @@ export async function DELETE(
         { error: "Submission ID required" },
         { status: 400 }
       );
-    }
-
-    // Verify form exists
-    const form = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
     }
 
     await db.formSubmission.delete({

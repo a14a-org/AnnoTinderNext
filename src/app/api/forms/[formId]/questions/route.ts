@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireFormOwnership } from "@/lib/auth";
 
-// POST - Create a new question
+// POST - Create a new question (requires ownership)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const body = await request.json();
     const {
       type,
@@ -21,7 +25,7 @@ export async function POST(
       insertAfter,
     } = body;
 
-    // Verify form exists
+    // Get form with questions for display order calculation
     const form = await db.form.findFirst({
       where: { id: formId },
       include: {
@@ -107,24 +111,18 @@ export async function POST(
   }
 }
 
-// PUT - Reorder questions
+// PUT - Reorder questions (requires ownership)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ formId: string }> }
 ) {
   try {
     const { formId } = await params;
+    const { error } = await requireFormOwnership(formId);
+    if (error) return error;
+
     const body = await request.json();
     const { questionIds } = body;
-
-    // Verify form exists
-    const form = await db.form.findFirst({
-      where: { id: formId },
-    });
-
-    if (!form) {
-      return NextResponse.json({ error: "Form not found" }, { status: 404 });
-    }
 
     // Update display orders
     await db.$transaction(

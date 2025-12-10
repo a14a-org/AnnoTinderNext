@@ -12,6 +12,68 @@ datasource db {
 }
 
 // ============================================================================
+// AUTH.JS MODELS
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  forms    Form[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
 // FORM BUILDER MODELS
 // ============================================================================
 
@@ -29,10 +91,15 @@ model Form {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Owner
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Annotation quota settings
   articlesPerSession Int    @default(20)
   sessionTimeoutMins Int    @default(10)
   quotaSettings      String? // JSON: QuotaSettings - flexible demographic grouping config
+  assignmentStrategy String  @default("INDIVIDUAL") // "INDIVIDUAL" | "JOB_SET"
 
   // Dynata panel integration settings
   dynataEnabled   Boolean @default(false)
@@ -42,10 +109,12 @@ model Form {
   questions   Question[]
   submissions FormSubmission[]
   articles    Article[]
+  jobSets     JobSet[]
   sessions    AnnotationSession[]
 
   @@index([slug])
   @@index([isPublished])
+  @@index([userId])
   @@map("forms")
 }
 
@@ -139,6 +208,27 @@ model Answer {
 // ANNOTATION QUOTA SYSTEM
 // ============================================================================
 
+// Job Set - A group of articles (usually 3) assigned to participants
+model JobSet {
+  id          String   @id @default(cuid())
+  formId      String
+  shortId     String   // e.g., "set-1"
+
+  // Quota tracking (JSON: { "dutch": count, "minority": count })
+  quotaCounts String   @default("{}")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  form     Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  articles Article[]
+  sessions AnnotationSession[]
+
+  @@unique([formId, shortId])
+  @@index([formId])
+  @@map("job_sets")
+}
+
 // Articles imported from CSV for annotation tasks
 model Article {
   id        String @id @default(cuid())
@@ -147,7 +237,12 @@ model Article {
   text      String // The article text content
 
   // Flexible quota tracking (JSON: { [groupName]: count })
+  // NOTE: In JOB_SET mode, quotas are tracked on the JobSet, not here.
   quotaCounts String @default("{}")
+
+  // Job Set Relation
+  jobSetId  String?
+  jobSet    JobSet? @relation(fields: [jobSetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -157,6 +252,7 @@ model Article {
 
   @@unique([formId, shortId])
   @@index([formId])
+  @@index([jobSetId])
   @@map("articles")
 }
 
@@ -179,7 +275,13 @@ model AnnotationSession {
   demographicGroup String? // "caucasian" | "minority" (derived)
 
   // Assignment
-  assignedArticleIds String? // JSON array of article IDs
+  // In INDIVIDUAL mode: JSON array of article IDs
+  assignedArticleIds String?
+
+  // In JOB_SET mode: Link to the assigned set
+  jobSetId String?
+  jobSet   JobSet? @relation(fields: [jobSetId], references: [id])
+
   articlesRequired   Int     @default(20)
   articlesCompleted  Int     @default(0)
 
@@ -195,6 +297,7 @@ model AnnotationSession {
 
   @@index([formId, demographicGroup, status])
   @@index([sessionToken])
+  @@index([jobSetId])
   @@map("annotation_sessions")
 }
 

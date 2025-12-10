@@ -10,12 +10,16 @@ interface ArticleImportSectionProps {
   formId: string;
   onImport: () => void;
   articleCount: number;
+  assignmentStrategy?: "INDIVIDUAL" | "JOB_SET";
+  jobSetSize?: number;
 }
 
 export const ArticleImportSection = ({
   formId,
   onImport,
   articleCount,
+  assignmentStrategy = "INDIVIDUAL",
+  jobSetSize = 3,
 }: ArticleImportSectionProps) => {
   const [csvData, setCsvData] = useState("");
   const [isImporting, setIsImporting] = useState(false);
@@ -39,7 +43,11 @@ export const ArticleImportSection = ({
     setIsImporting(true);
     setImportStatus(null);
 
-    const { data, error } = await apiPost<{ imported: number }>(`/api/forms/${formId}/articles`, { csv: csvData });
+    const { data, error } = await apiPost<{ imported: number }>(`/api/forms/${formId}/articles`, { 
+      csv: csvData,
+      assignmentStrategy,
+      jobSetSize
+    });
 
     if (data) {
       setImportStatus({
@@ -101,7 +109,12 @@ export const ArticleImportSection = ({
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-chili-coral file:text-white hover:file:bg-chili-coral/90 cursor-pointer"
           />
           <p className="text-xs text-gray-500 mt-1">
-            CSV must have &quot;text&quot; (or &quot;tekst&quot;) and &quot;ARTICLE_SHORT_ID&quot; columns
+            CSV must have &quot;text&quot; (or &quot;tekst&quot;) and &quot;ARTICLE_SHORT_ID&quot; columns.
+            {assignmentStrategy === "JOB_SET" && (
+              <span className="block mt-1 font-medium text-blue-600">
+                Job Set Mode: Articles will be automatically grouped into sets of {jobSetSize}.
+              </span>
+            )}
           </p>
         </div>
 

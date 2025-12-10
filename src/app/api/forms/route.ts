@@ -2,11 +2,18 @@ import { nanoid } from "nanoid";
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
 
-// GET - List all forms
+// GET - List all forms for the current user
 export async function GET() {
   try {
+    const { userId, error } = await requireAuth();
+    if (error) return error;
+
     const forms = await db.form.findMany({
+      where: {
+        userId,
+      },
       include: {
         _count: {
           select: {
@@ -31,6 +38,9 @@ export async function GET() {
 // POST - Create a new form
 export async function POST(request: NextRequest) {
   try {
+    const { userId, error } = await requireAuth();
+    if (error) return error;
+
     const body = await request.json();
     const { title, description } = body;
 
@@ -54,6 +64,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         slug,
+        userId,
         // Create default welcome and thank you screens
         questions: {
           create: [

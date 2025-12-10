@@ -22,6 +22,7 @@ interface UseFormEditorResult {
   dynataEnabled: boolean;
   dynataReturnUrl: string;
   dynataBasicCode: string;
+  assignmentStrategy: "INDIVIDUAL" | "JOB_SET";
   saveStatus: "idle" | "saving" | "saved";
   setTitle: (title: string) => void;
   setDescription: (description: string) => void;
@@ -33,6 +34,7 @@ interface UseFormEditorResult {
   setDynataEnabled: (enabled: boolean) => void;
   setDynataReturnUrl: (url: string) => void;
   setDynataBasicCode: (code: string) => void;
+  setAssignmentStrategy: (strategy: "INDIVIDUAL" | "JOB_SET") => void;
   setForm: React.Dispatch<React.SetStateAction<Form | null>>;
   fetchForm: () => Promise<void>;
   togglePublish: () => Promise<void>;
@@ -53,6 +55,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
   const [dynataEnabled, setDynataEnabled] = useState(false);
   const [dynataReturnUrl, setDynataReturnUrl] = useState("");
   const [dynataBasicCode, setDynataBasicCode] = useState("");
+  const [assignmentStrategy, setAssignmentStrategy] = useState<"INDIVIDUAL" | "JOB_SET">("INDIVIDUAL");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -76,6 +79,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
       setDynataEnabled(data.dynataEnabled ?? false);
       setDynataReturnUrl(data.dynataReturnUrl ?? "");
       setDynataBasicCode(data.dynataBasicCode ?? "");
+      setAssignmentStrategy(data.assignmentStrategy || "INDIVIDUAL");
       setTimeout(() => { initialLoadRef.current = false; }, 100);
     } else {
       console.error("Failed to fetch form:", error);
@@ -91,6 +95,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
       title, description, brandColor, isPublished,
       articlesPerSession, sessionTimeoutMins, quotaSettings,
       dynataEnabled, dynataReturnUrl: dynataReturnUrl || null, dynataBasicCode: dynataBasicCode || null,
+      assignmentStrategy,
     });
 
     if (data) {
@@ -101,7 +106,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
       console.error("Failed to save form:", error);
       setSaveStatus("idle");
     }
-  }, [formId, title, description, brandColor, isPublished, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode]);
+  }, [formId, title, description, brandColor, isPublished, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode, assignmentStrategy]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +130,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
         setDynataEnabled(data.dynataEnabled ?? false);
         setDynataReturnUrl(data.dynataReturnUrl ?? "");
         setDynataBasicCode(data.dynataBasicCode ?? "");
+        setAssignmentStrategy(data.assignmentStrategy || "INDIVIDUAL");
         setTimeout(() => { initialLoadRef.current = false; }, 100);
       } else {
         console.error("Failed to fetch form:", error);
@@ -145,7 +151,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
     saveTimeoutRef.current = setTimeout(() => { saveFormSettings(); }, 1000);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, brandColor, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode, saveFormSettings]);
+  }, [title, description, brandColor, articlesPerSession, sessionTimeoutMins, quotaSettings, dynataEnabled, dynataReturnUrl, dynataBasicCode, assignmentStrategy, saveFormSettings]);
 
   const togglePublish = useCallback(async () => {
     const newStatus = !isPublished;
@@ -164,10 +170,10 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
   return {
     form, isLoading, title, description, brandColor, isPublished,
     articlesPerSession, sessionTimeoutMins, quotaSettings,
-    dynataEnabled, dynataReturnUrl, dynataBasicCode, saveStatus,
+    dynataEnabled, dynataReturnUrl, dynataBasicCode, assignmentStrategy, saveStatus,
     setTitle, setDescription, setBrandColor, setIsPublished,
     setArticlesPerSession, setSessionTimeoutMins, setQuotaSettings,
-    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode,
+    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode, setAssignmentStrategy,
     setForm, fetchForm, togglePublish,
   };
 };

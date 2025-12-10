@@ -1,9 +1,11 @@
 import type { TextAnnotationSettings } from "@/features/annotation";
 
 import { motion } from "framer-motion";
+import { Clock } from "lucide-react";
 
 import { TextDisplay } from "./text-display";
 import { FollowUpModal } from "./follow-up-modal";
+import { InstructionPanel } from "./instruction-panel";
 
 interface AnnotationPhaseProps {
   currentIndex: number;
@@ -16,6 +18,8 @@ interface AnnotationPhaseProps {
   showFollowUp: boolean;
   followUpAnswers: Record<string, string | number | null>;
   isSaving: boolean;
+  isTimeCompleted?: boolean;
+  timeLeft?: number;
   onSegmentClick: (segment: string, index: number) => void;
   onClearSelection: () => void;
   onFollowUpSubmit: () => void;
@@ -35,6 +39,8 @@ export const AnnotationPhase = ({
   showFollowUp,
   followUpAnswers,
   isSaving,
+  isTimeCompleted = true,
+  timeLeft = 0,
   onSegmentClick,
   onClearSelection,
   onFollowUpSubmit,
@@ -64,9 +70,15 @@ export const AnnotationPhase = ({
       </div>
 
       {/* Instruction */}
-      <p className="text-sm text-gray-600 mb-4 text-center">
-        {settings.instructionText}
-      </p>
+      <InstructionPanel instructionText={settings.instructionText} />
+
+      {/* Timer Warning */}
+      {!isTimeCompleted && (
+        <div className="flex items-center justify-center gap-2 mb-4 text-sm text-orange-600 font-medium bg-orange-50 py-2 rounded-lg">
+          <Clock className="w-4 h-4" />
+          <span>Please read for {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")} before continuing</span>
+        </div>
+      )}
 
       {/* Text display with selectable segments */}
       <TextDisplay
@@ -88,6 +100,7 @@ export const AnnotationPhase = ({
         settings={settings}
         followUpAnswers={followUpAnswers}
         isSaving={isSaving}
+        isTimeCompleted={isTimeCompleted}
         onClearSelection={onClearSelection}
         onFollowUpSubmit={onFollowUpSubmit}
         setFollowUpAnswers={setFollowUpAnswers}
@@ -99,8 +112,8 @@ export const AnnotationPhase = ({
         <div className="text-center">
           <button
             onClick={onSkip}
-            disabled={isSaving}
-            className="text-sm text-gray-500 hover:text-gray-700 underline disabled:opacity-50"
+            disabled={isSaving || !isTimeCompleted}
+            className="text-sm text-gray-500 hover:text-gray-700 underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
           >
             {isSaving ? "Saving..." : settings.skipButtonText || "Skip this text"}
           </button>

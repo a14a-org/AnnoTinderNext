@@ -48,6 +48,7 @@ export interface Form {
   dynataEnabled: boolean;
   dynataReturnUrl: string | null;
   dynataBasicCode: string | null;
+  assignmentStrategy: "INDIVIDUAL" | "JOB_SET";
   questions: Question[];
   _count: {
     submissions: number;

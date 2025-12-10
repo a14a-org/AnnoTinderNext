@@ -27,10 +27,10 @@ const FormEditorPage = () => {
   const {
     form, isLoading, title, description, brandColor, isPublished,
     articlesPerSession, sessionTimeoutMins, quotaSettings,
-    dynataEnabled, dynataReturnUrl, dynataBasicCode, saveStatus,
+    dynataEnabled, dynataReturnUrl, dynataBasicCode, assignmentStrategy, saveStatus,
     setTitle, setDescription, setBrandColor,
     setArticlesPerSession, setSessionTimeoutMins, setQuotaSettings,
-    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode,
+    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode, setAssignmentStrategy,
     setForm, fetchForm, togglePublish, setIsPublished,
   } = useFormEditor(formId);
 
@@ -177,6 +177,7 @@ const FormEditorPage = () => {
             dynataEnabled={dynataEnabled}
             dynataReturnUrl={dynataReturnUrl}
             dynataBasicCode={dynataBasicCode}
+            assignmentStrategy={assignmentStrategy}
             onDescriptionChange={setDescription}
             onBrandColorChange={setBrandColor}
             onArticlesPerSessionChange={setArticlesPerSession}
@@ -185,6 +186,7 @@ const FormEditorPage = () => {
             onDynataEnabledChange={setDynataEnabled}
             onDynataReturnUrlChange={setDynataReturnUrl}
             onDynataBasicCodeChange={setDynataBasicCode}
+            onAssignmentStrategyChange={setAssignmentStrategy}
             onImport={fetchForm}
           />
         )}

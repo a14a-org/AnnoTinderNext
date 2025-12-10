@@ -18,6 +18,7 @@ interface SettingsPanelProps {
   dynataEnabled: boolean;
   dynataReturnUrl: string;
   dynataBasicCode: string;
+  assignmentStrategy: "INDIVIDUAL" | "JOB_SET";
   onDescriptionChange: (value: string) => void;
   onBrandColorChange: (value: string) => void;
   onArticlesPerSessionChange: (value: number) => void;
@@ -26,6 +27,7 @@ interface SettingsPanelProps {
   onDynataEnabledChange: (enabled: boolean) => void;
   onDynataReturnUrlChange: (url: string) => void;
   onDynataBasicCodeChange: (code: string) => void;
+  onAssignmentStrategyChange: (strategy: "INDIVIDUAL" | "JOB_SET") => void;
   onImport: () => void;
 }
 
@@ -40,6 +42,7 @@ export const SettingsPanel = ({
   dynataEnabled,
   dynataReturnUrl,
   dynataBasicCode,
+  assignmentStrategy,
   onDescriptionChange,
   onBrandColorChange,
   onArticlesPerSessionChange,
@@ -48,6 +51,7 @@ export const SettingsPanel = ({
   onDynataEnabledChange,
   onDynataReturnUrlChange,
   onDynataBasicCodeChange,
+  onAssignmentStrategyChange,
   onImport,
 }: SettingsPanelProps) => (
   <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 space-y-6">
@@ -97,18 +101,68 @@ export const SettingsPanel = ({
         <FileSpreadsheet className="w-4 h-4" />
         Annotation Quota Settings
       </h4>
+      
+      {/* Assignment Strategy Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-obsidian mb-2">
+          Assignment Strategy
+        </label>
+        {(form._count?.articles ?? 0) > 0 && (
+          <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Strategy locked:</strong> Clear all articles before changing the assignment strategy.
+            </p>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => onAssignmentStrategyChange("INDIVIDUAL")}
+            disabled={(form._count?.articles ?? 0) > 0}
+            className={`p-4 rounded-lg border-2 text-left transition-all ${
+              assignmentStrategy === "INDIVIDUAL"
+                ? "border-chili-coral bg-chili-coral/5 ring-1 ring-chili-coral"
+                : "border-gray-200 hover:border-gray-300"
+            } ${(form._count?.articles ?? 0) > 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <div className="font-medium text-obsidian mb-1">Individual Mode</div>
+            <p className="text-xs text-obsidian-muted">
+              Assigns random articles one by one. Best for simple annotation tasks.
+            </p>
+          </button>
+          <button
+            onClick={() => onAssignmentStrategyChange("JOB_SET")}
+            disabled={(form._count?.articles ?? 0) > 0}
+            className={`p-4 rounded-lg border-2 text-left transition-all ${
+              assignmentStrategy === "JOB_SET"
+                ? "border-chili-coral bg-chili-coral/5 ring-1 ring-chili-coral"
+                : "border-gray-200 hover:border-gray-300"
+            } ${(form._count?.articles ?? 0) > 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <div className="font-medium text-obsidian mb-1">Job Set Mode</div>
+            <p className="text-xs text-obsidian-muted">
+              Assigns pre-grouped sets of articles (e.g. 3). Guarantees consistent grouping.
+            </p>
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">
-            Articles per Session
+            {assignmentStrategy === "JOB_SET" ? "Job Set Size" : "Articles per Session"}
           </label>
           <Input
             type="number"
             value={articlesPerSession}
-            onChange={(e) => onArticlesPerSessionChange(parseInt(e.target.value) || 20)}
+            onChange={(e) => onArticlesPerSessionChange(parseInt(e.target.value) || (assignmentStrategy === "JOB_SET" ? 3 : 20))}
             min={1}
+            // Removed disabled prop to allow configuration
           />
-          <p className="text-xs text-gray-500 mt-1">How many articles each participant annotates</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {assignmentStrategy === "JOB_SET" 
+              ? "How many articles are grouped into one set (usually 3)" 
+              : "How many articles each participant annotates"}
+          </p>
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">
@@ -124,7 +178,7 @@ export const SettingsPanel = ({
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">
-            Dutch Quota per Article
+            Dutch Quota per {assignmentStrategy === "JOB_SET" ? "Set" : "Article"}
           </label>
           <Input
             type="number"
@@ -141,7 +195,7 @@ export const SettingsPanel = ({
         </div>
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">
-            Minority Quota per Article
+            Minority Quota per {assignmentStrategy === "JOB_SET" ? "Set" : "Article"}
           </label>
           <Input
             type="number"
@@ -243,6 +297,12 @@ export const SettingsPanel = ({
     </div>
 
     {/* Article Import Section */}
-    <ArticleImportSection formId={formId} onImport={onImport} articleCount={form._count?.articles || 0} />
+    <ArticleImportSection 
+      formId={formId} 
+      onImport={onImport} 
+      articleCount={form._count?.articles || 0} 
+      assignmentStrategy={assignmentStrategy}
+      jobSetSize={articlesPerSession}
+    />
   </div>
 );

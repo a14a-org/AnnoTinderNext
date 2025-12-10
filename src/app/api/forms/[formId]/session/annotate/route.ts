@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
+import { logError } from "@/lib/logger";
 
 /**
  * POST - Save a single annotation for an article
@@ -66,11 +67,24 @@ export async function POST(
     }
 
     // Verify article is assigned to this session
-    const assignedIds = session.assignedArticleIds
-      ? JSON.parse(session.assignedArticleIds)
-      : [];
+    let isAssigned = false;
 
-    if (!assignedIds.includes(articleId)) {
+    if (session.assignedArticleIds) {
+      // INDIVIDUAL mode: check assignedArticleIds
+      const assignedIds = JSON.parse(session.assignedArticleIds);
+      isAssigned = assignedIds.includes(articleId);
+    } else if (session.jobSetId) {
+      // JOB_SET mode: check if article belongs to the assigned job set
+      const jobSetArticle = await db.article.findFirst({
+        where: {
+          id: articleId,
+          jobSetId: session.jobSetId,
+        },
+      });
+      isAssigned = !!jobSetArticle;
+    }
+
+    if (!isAssigned) {
       return NextResponse.json(
         { error: "Article not assigned to this session" },
         { status: 400 }
@@ -137,7 +151,7 @@ export async function POST(
       allCompleted,
     });
   } catch (error) {
-    console.error("Failed to save annotation:", error);
+    logError("Failed to save annotation:", error);
     return NextResponse.json(
       { error: "Failed to save annotation" },
       { status: 500 }
