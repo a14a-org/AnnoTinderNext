@@ -10,6 +10,7 @@ export default auth(async function middleware(req) {
 
   // Protected routes that require authentication
   const protectedPatterns = [
+    /^\/$/,  // Root route (homepage with user's forms)
     /^\/form\/[^/]+\/edit/,
     /^\/form\/[^/]+\/responses/,
     /^\/form\/[^/]+\/sessions/,
@@ -40,6 +41,8 @@ export default auth(async function middleware(req) {
 
 export const config = {
   matcher: [
+    // Root route (protected - shows user's forms)
+    "/",
     // Protected admin pages
     "/form/:path*/edit/:path*",
     "/form/:path*/responses/:path*",
