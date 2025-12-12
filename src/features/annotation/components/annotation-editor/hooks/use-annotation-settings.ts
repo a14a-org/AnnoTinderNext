@@ -51,6 +51,7 @@ const safeParseSettings = (initialSettings: TextAnnotationSettings | null): Text
       instructionText: initialSettings?.instructionText ?? DEFAULT_ANNOTATION_SETTINGS.instructionText,
       allowSkip: initialSettings?.allowSkip ?? DEFAULT_ANNOTATION_SETTINGS.allowSkip,
       skipButtonText: initialSettings?.skipButtonText ?? DEFAULT_ANNOTATION_SETTINGS.skipButtonText,
+      minimumTimeOnPage: initialSettings?.minimumTimeOnPage ?? DEFAULT_ANNOTATION_SETTINGS.minimumTimeOnPage,
       followUp: undefined,
       followUpQuestions,
     };
