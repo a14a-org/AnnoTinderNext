@@ -35,6 +35,7 @@ export const textAnnotationSettingsSchema = z.object({
   skipButtonText: z.string(),
   instructionText: z.string(),
   highlightColor: z.string(),
+  minimumTimeOnPage: z.number().min(0).default(5),
 })
 
 export const annotationSchema = z.object({

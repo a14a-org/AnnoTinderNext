@@ -35,7 +35,9 @@ export const AnnotationDisplay = ({
   } = useAnnotationState(settings);
 
   // Timer for minimum time on page (TODO: Make configurable in settings)
-  const { isCompleted: isTimeCompleted, timeLeft, resetTimer } = useMinimumTime(5);
+  const { isCompleted: isTimeCompleted, timeLeft, resetTimer } = useMinimumTime(
+    settings.minimumTimeOnPage ?? 5
+  );
 
   // Split text based on selection mode
   const segments = useMemo(() => {
@@ -90,7 +92,7 @@ export const AnnotationDisplay = ({
     // Move to next text or complete/transition
     const isDone = nextText();
     resetTimer(); // Reset timer for next text
-    
+
     if (isDone) {
       if (phase === "practice") {
         // Show transition screen before main phase

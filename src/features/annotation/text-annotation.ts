@@ -60,6 +60,7 @@ export interface TextAnnotationSettings {
   skipButtonText: string
   instructionText: string
   highlightColor: string
+  minimumTimeOnPage: number
 }
 
 export const DEFAULT_ANNOTATION_SETTINGS: TextAnnotationSettings = {
@@ -92,6 +93,7 @@ export const DEFAULT_ANNOTATION_SETTINGS: TextAnnotationSettings = {
   skipButtonText: 'Overslaan',
   instructionText: 'Selecteer een passage in de tekst hieronder',
   highlightColor: '#fef08a',
+  minimumTimeOnPage: 5,
 }
 
 export interface Annotation {

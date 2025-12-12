@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import NextAuth from "next-auth";
-import { authConfig } from "@/auth.config";
+import { auth } from "@/auth";
 
-const { auth } = NextAuth(authConfig);
-
-export default auth(async function middleware(req) {
+// Named export 'proxy' required by Next.js 16
+export const proxy = auth(async function handler(req) {
   const { pathname } = req.nextUrl;
   const isAuthenticated = !!req.auth;
 

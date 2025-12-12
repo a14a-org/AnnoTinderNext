@@ -20,7 +20,7 @@ export const DEFAULT_QUOTA_SETTINGS: QuotaSettings = {
   groups: {
     dutch: {
       values: ['nederlands', 'duits', 'pools'],
-      target: 1,
+      target: 2,
     },
     minority: {
       values: [
@@ -31,7 +31,7 @@ export const DEFAULT_QUOTA_SETTINGS: QuotaSettings = {
         'indonesisch',
         'anders',
       ],
-      target: 2,
+      target: 4,
     },
   },
 }

@@ -42,6 +42,41 @@ export const DisplayOptionsSection = ({
             />
           </div>
         )}
+
+        <div>
+          <label className="block text-xs font-medium text-obsidian-muted mb-1">
+            Highlight Color
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="color"
+              value={settings.highlightColor}
+              onChange={(e) => updateSetting("highlightColor", e.target.value)}
+              className="w-9 h-9 p-0.5 rounded cursor-pointer border border-gray-200"
+            />
+            <Input
+              value={settings.highlightColor}
+              onChange={(e) => updateSetting("highlightColor", e.target.value)}
+              placeholder="#fef08a"
+              className="flex-1"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-obsidian-muted mb-1">
+            Minimum time on page (seconds)
+          </label>
+          <Input
+            type="number"
+            min="0"
+            value={settings.minimumTimeOnPage ?? 5}
+            onChange={(e) => updateSetting("minimumTimeOnPage", parseInt(e.target.value) || 0)}
+          />
+          <p className="text-xs text-obsidian-muted mt-1">
+            Prevents skipping or submitting until this time has passed.
+          </p>
+        </div>
       </div>
     )}
   </div>
