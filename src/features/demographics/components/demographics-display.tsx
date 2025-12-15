@@ -33,17 +33,26 @@ export const DemographicsDisplay = ({
   const progress = ((currentFieldIndex + 1) / totalFields) * 100
 
   const goToNextField = useCallback(() => {
+    // For slider fields, ensure current value is saved (even if user didn't move it)
+    let finalAnswers = answers
+    if (currentField?.type === 'slider' && currentField.sliderConfig && !answers[currentField.id]) {
+      const { min, max } = currentField.sliderConfig
+      const defaultValue = Math.floor((min + max) / 2)
+      finalAnswers = { ...answers, [currentField.id]: String(defaultValue) }
+      setAnswers(finalAnswers)
+    }
+
     if (currentFieldIndex < totalFields - 1) {
       setCurrentFieldIndex(currentFieldIndex + 1)
       setShowOtherInput(false)
       setOtherText('')
     } else {
-      const validation = validateDemographics(answers, settings)
+      const validation = validateDemographics(finalAnswers, settings)
       if (validation.valid) {
-        onComplete(answers)
+        onComplete(finalAnswers)
       }
     }
-  }, [currentFieldIndex, totalFields, answers, settings, onComplete])
+  }, [currentFieldIndex, totalFields, answers, settings, onComplete, currentField])
 
   const handleSelect = useCallback(
     (value: string) => {
