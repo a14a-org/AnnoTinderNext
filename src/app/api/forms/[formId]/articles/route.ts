@@ -201,17 +201,18 @@ export const POST = async (
       );
     }
 
-    // Deduplicate parsed articles based on shortId and text
-    const uniqueArticlesMap = new Map<string, { text: string; shortId: string }>();
-    parsedArticles.forEach(article => {
-        const key = `${article.shortId}-${article.text}`; // Composite key for deduplication
-        if (!uniqueArticlesMap.has(key)) {
-            uniqueArticlesMap.set(key, article);
-        }
-    });
-    const uniqueArticles = Array.from(uniqueArticlesMap.values());
+    // Deduplicate parsed articles based on text content (keeps first occurrence)
+    const seenTexts = new Set<string>();
+    const uniqueArticles: Array<{ text: string; shortId: string }> = [];
+    for (const article of parsedArticles) {
+      if (!seenTexts.has(article.text)) {
+        seenTexts.add(article.text);
+        uniqueArticles.push(article);
+      }
+    }
+    const duplicatesRemoved = parsedArticles.length - uniqueArticles.length;
 
-    // Transaction to ensure atomicity
+    // Transaction to ensure atomicity (increased timeout for large imports)
     const results = await db.$transaction(async (tx) => {
       // If replaceExisting, delete all articles AND job sets for this form
       if (replaceExisting) {
@@ -231,37 +232,27 @@ export const POST = async (
           },
         });
 
-        // Group unique articles into job sets
-        const jobSetsToCreate = [];
+        // Group unique articles into job sets and create them
         for (let i = 0; i < uniqueArticles.length; i += effectiveJobSetSize) {
           const jobSetArticles = uniqueArticles.slice(i, i + effectiveJobSetSize);
           if (jobSetArticles.length > 0) {
-            jobSetsToCreate.push({
-              formId,
-              shortId: `set-${Math.floor(i / effectiveJobSetSize) + 1}`,
-              articles: {
-                createMany: {
-                  data: jobSetArticles.map(article => ({
-                    shortId: article.shortId,
-                    text: article.text,
-                    formId: formId, // Explicitly set formId for articles
-                  })),
+            await tx.jobSet.create({
+              data: {
+                formId,
+                shortId: `set-${Math.floor(i / effectiveJobSetSize) + 1}`,
+                articles: {
+                  createMany: {
+                    data: jobSetArticles.map(article => ({
+                      shortId: article.shortId,
+                      text: article.text,
+                      formId: formId,
+                    })),
+                  },
                 },
               },
             });
+            importedCount += jobSetArticles.length;
           }
-        }
-
-        // Create JobSets and nested Articles
-        for (const jobSetData of jobSetsToCreate) {
-          await tx.jobSet.create({
-            data: {
-              formId: jobSetData.formId,
-              shortId: jobSetData.shortId,
-              articles: jobSetData.articles,
-            },
-          });
-          importedCount += jobSetData.articles.createMany.data.length;
         }
 
       } else { // INDIVIDUAL assignmentStrategy
@@ -284,11 +275,11 @@ export const POST = async (
               formId,
               shortId: article.shortId,
               text: article.text,
-              jobSetId: null, // Ensure jobSetId is null for individual articles
+              jobSetId: null,
             },
             update: {
               text: article.text,
-              jobSetId: null, // explicit null on update to remove from any previous job set
+              jobSetId: null,
             },
           });
           importedCount++;
@@ -296,13 +287,16 @@ export const POST = async (
       }
 
       return { importedCount };
+    }, {
+      timeout: 60000, // 60 second timeout for large imports
     });
     
     return NextResponse.json(
       {
         success: true,
         imported: results.importedCount,
-        message: `Successfully imported ${results.importedCount} articles`,
+        duplicatesRemoved,
+        message: `Successfully imported ${results.importedCount} articles${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}`,
       },
       { status: 201 }
     );

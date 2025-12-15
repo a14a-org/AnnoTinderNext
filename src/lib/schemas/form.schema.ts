@@ -19,6 +19,7 @@ export const createQuestionSchema = z.object({
     'THANK_YOU_SCREEN',
     'INFORMED_CONSENT',
     'DEMOGRAPHICS',
+    'INSTRUCTIONS',
     'TEXT_ANNOTATION',
     'MULTIPLE_CHOICE',
     'DROPDOWN',

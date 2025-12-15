@@ -1,6 +1,7 @@
 import type { InformedConsentSettings } from "@/features/informed-consent";
 import type { TextAnnotationSettings } from "@/features/annotation";
 import type { DemographicsSettings } from "@/features/demographics";
+import type { InstructionsSettings } from "@/features/instructions";
 
 export interface QuestionOption {
   id: string;
@@ -62,4 +63,4 @@ export interface QuotaSettings {
 }
 
 // Re-export types used by this feature
-export type { InformedConsentSettings, TextAnnotationSettings, DemographicsSettings };
+export type { InformedConsentSettings, TextAnnotationSettings, DemographicsSettings, InstructionsSettings };

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Highlighter,
   Users,
+  BookOpen,
 } from "lucide-react";
 
 export const questionTypes = [
@@ -28,6 +29,7 @@ export const questionTypes = [
   { type: "INFORMED_CONSENT", label: "Informed Consent", icon: ShieldCheck },
   { type: "TEXT_ANNOTATION", label: "Text Annotation", icon: Highlighter },
   { type: "DEMOGRAPHICS", label: "Demographics", icon: Users },
+  { type: "INSTRUCTIONS", label: "Instructions", icon: BookOpen },
 ] as const;
 
 export const isChoiceType = (type: string) =>

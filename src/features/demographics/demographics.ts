@@ -5,13 +5,26 @@
  * Typically shown after informed consent, before annotation task.
  */
 
+export interface SliderConfig {
+  min: number
+  max: number
+  step: number
+  minLabel?: string
+  maxLabel?: string
+  showValue?: boolean
+}
+
 export interface DemographicField {
   id: string
   label: string
-  type: 'single_choice' | 'text'
-  options: string[] | undefined
+  type: 'single_choice' | 'text' | 'slider' | 'month_year' | 'single_choice_other'
+  options?: string[]
   required: boolean
-  placeholder: string | undefined
+  placeholder?: string
+  /** For single_choice_other: which option triggers the text input */
+  otherOptionValue?: string
+  /** For slider type: configuration */
+  sliderConfig?: SliderConfig
 }
 
 export interface DemographicsSettings {
@@ -32,7 +45,6 @@ export const DEFAULT_DEMOGRAPHICS_SETTINGS: DemographicsSettings = {
       type: 'single_choice',
       options: ['Man', 'Vrouw', 'Anders', 'Zeg ik liever niet'],
       required: true,
-      placeholder: undefined,
     },
     {
       id: 'ethnicity',
@@ -50,7 +62,6 @@ export const DEFAULT_DEMOGRAPHICS_SETTINGS: DemographicsSettings = {
         'Anders',
       ],
       required: true,
-      placeholder: undefined,
     },
     {
       id: 'ageRange',
@@ -58,7 +69,6 @@ export const DEFAULT_DEMOGRAPHICS_SETTINGS: DemographicsSettings = {
       type: 'single_choice',
       options: ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'],
       required: true,
-      placeholder: undefined,
     },
   ],
   caucasianEthnicities: ['nederlands', 'duits', 'pools'],

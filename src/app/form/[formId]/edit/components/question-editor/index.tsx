@@ -1,6 +1,6 @@
 "use client";
 
-import type { Question, QuestionUpdatePayload, InformedConsentSettings, TextAnnotationSettings, DemographicsSettings } from "../../types";
+import type { Question, QuestionUpdatePayload, InformedConsentSettings, TextAnnotationSettings, DemographicsSettings, InstructionsSettings } from "../../types";
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { DemographicsEditor } from "@/features/demographics";
 import { DEFAULT_CONSENT_SETTINGS } from "@/features/informed-consent";
 import { DEFAULT_ANNOTATION_SETTINGS } from "@/features/annotation";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS } from "@/features/demographics";
+import { InstructionsEditor, DEFAULT_INSTRUCTIONS_SETTINGS } from "@/features/instructions";
 
 import { isChoiceType } from "../../constants";
 
@@ -123,11 +124,12 @@ export const QuestionEditor = ({
     });
   };
 
-  const isScreen = question.type === "WELCOME_SCREEN" || question.type === "THANK_YOU_SCREEN" || question.type === "INFORMED_CONSENT" || question.type === "DEMOGRAPHICS";
+  const isScreen = question.type === "WELCOME_SCREEN" || question.type === "THANK_YOU_SCREEN" || question.type === "INFORMED_CONSENT" || question.type === "DEMOGRAPHICS" || question.type === "INSTRUCTIONS";
   const isWelcome = question.type === "WELCOME_SCREEN";
   const isInformedConsent = question.type === "INFORMED_CONSENT";
   const isTextAnnotation = question.type === "TEXT_ANNOTATION";
   const isDemographics = question.type === "DEMOGRAPHICS";
+  const isInstructions = question.type === "INSTRUCTIONS";
 
   const handleConsentSettingsUpdate = (consentSettings: InformedConsentSettings) => {
     triggerUpdate({
@@ -144,6 +146,12 @@ export const QuestionEditor = ({
   const handleDemographicsSettingsUpdate = (demographicsSettings: DemographicsSettings) => {
     triggerUpdate({
       settings: demographicsSettings as unknown as Record<string, unknown>,
+    });
+  };
+
+  const handleInstructionsSettingsUpdate = (instructionsSettings: InstructionsSettings) => {
+    triggerUpdate({
+      settings: instructionsSettings as unknown as Record<string, unknown>,
     });
   };
 
@@ -279,6 +287,44 @@ export const QuestionEditor = ({
         <DemographicsEditor
           settings={(question.settings as unknown as DemographicsSettings) || DEFAULT_DEMOGRAPHICS_SETTINGS}
           onUpdate={handleDemographicsSettingsUpdate}
+        />
+      </div>
+    );
+  }
+
+  // Special editor for Instructions
+  if (isInstructions) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-obsidian">Edit Instructions</h3>
+          <button onClick={onDelete} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-obsidian mb-1">Instructions Title</label>
+          <Input
+            ref={titleInputRef}
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            placeholder="Instructies"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-obsidian mb-1">Subtitle (optional)</label>
+          <textarea
+            ref={descriptionInputRef}
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            placeholder="Brief introduction before the instructions"
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-chili-coral text-sm"
+            rows={2}
+          />
+        </div>
+        <InstructionsEditor
+          settings={(question.settings as unknown as InstructionsSettings) || DEFAULT_INSTRUCTIONS_SETTINGS}
+          onUpdate={handleInstructionsSettingsUpdate}
         />
       </div>
     );

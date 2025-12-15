@@ -3,6 +3,7 @@
 import type { Annotation, TextAnnotationSettings } from "@/features/annotation";
 import type { DemographicAnswers, DemographicsSettings } from "@/features/demographics";
 import type { InformedConsentSettings } from "@/features/informed-consent";
+import type { InstructionsSettings } from "@/features/instructions";
 import type { AssignedArticle, SessionData } from "./types";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,6 +20,7 @@ import {
   ConsentDeclinedDisplay,
   InformedConsentDisplay,
 } from "@/features/informed-consent/components/informed-consent-display";
+import { InstructionsDisplay } from "@/features/instructions/components/instructions-display";
 
 import {
   FormCompleteDisplay,
@@ -67,8 +69,9 @@ const PublicFormPage = () => {
   const isActiveThankYou = activeQuestion?.type === "THANK_YOU_SCREEN";
   const isInformedConsent = activeQuestion?.type === "INFORMED_CONSENT";
   const isDemographics = activeQuestion?.type === "DEMOGRAPHICS";
+  const isInstructions = activeQuestion?.type === "INSTRUCTIONS";
   const isTextAnnotation = activeQuestion?.type === "TEXT_ANNOTATION";
-  const isSpecialScreen = isInformedConsent || isDemographics || isTextAnnotation;
+  const isSpecialScreen = isInformedConsent || isDemographics || isInstructions || isTextAnnotation;
 
   // Progress calculation
   const totalQuestions = form?.questions.filter(
@@ -160,6 +163,13 @@ const PublicFormPage = () => {
     navigateTo(currentIndex + 1, 1);
     setIsProcessingDemographics(false);
   }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview]);
+
+  // Instructions handler
+  const handleInstructionsContinue = useCallback(() => {
+    if (!activeQuestion) return;
+    setAnswer(activeQuestion.id, true);
+    navigateTo(currentIndex + 1, 1);
+  }, [activeQuestion, currentIndex, navigateTo, setAnswer]);
 
   // Annotation handler
   const handleAnnotationComplete = useCallback(async (annotations: Annotation[]) => {
@@ -400,6 +410,16 @@ const PublicFormPage = () => {
                 brandColor={brandColor}
                 onComplete={handleDemographicsComplete}
                 disabled={isProcessingDemographics}
+              />
+            )}
+
+            {isInstructions && (
+              <InstructionsDisplay
+                title={activeQuestion.title}
+                description={activeQuestion.description}
+                settings={activeQuestion.settings as InstructionsSettings | null}
+                brandColor={brandColor}
+                onContinue={handleInstructionsContinue}
               />
             )}
 

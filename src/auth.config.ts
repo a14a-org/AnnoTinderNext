@@ -1,11 +1,13 @@
 import type { NextAuthConfig } from "next-auth";
 import Resend from "next-auth/providers/resend";
+import { sendVerificationRequest } from "@/lib/send-verification-request";
 
 export const authConfig = {
     providers: [
         Resend({
             from: process.env.EMAIL_FROM || "noreply@example.com",
             apiKey: process.env.RESEND_API_KEY,
+            sendVerificationRequest,
         }),
     ],
     session: {

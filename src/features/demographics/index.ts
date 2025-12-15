@@ -7,6 +7,7 @@ export type {
   DemographicField,
   DemographicsSettings,
   DemographicAnswers,
+  SliderConfig,
 } from './demographics'
 
 export {
