@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useCallback } from "react";
 import {
   BarChart3,
   Copy,
@@ -12,12 +12,17 @@ import {
   MoreHorizontal,
   Plus,
   Trash2,
+  Upload,
+  X,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
 import { Button } from "@/components/ui";
 import { apiGet, apiPost, apiDelete } from "@/lib/api";
+import type { FormImportResult } from "@/features/form-export";
 
 interface Form {
   id: string;
@@ -54,6 +59,14 @@ const FormsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+
+  // Import modal state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<FormImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Redirect to sign-in if not authenticated
@@ -111,6 +124,69 @@ const FormsPage = () => {
     setMenuOpen(null);
   };
 
+  const handleImportClick = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setImportError(null);
+    setShowImportModal(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith(".json")) {
+        setImportError("Please select a JSON file");
+        return;
+      }
+      setImportFile(file);
+      setImportError(null);
+    }
+  };
+
+  const handleImport = useCallback(async () => {
+    if (!importFile) return;
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      const text = await importFile.text();
+      const data = JSON.parse(text);
+
+      const { data: result, error } = await apiPost<FormImportResult>(
+        "/api/forms/import",
+        data
+      );
+
+      if (result) {
+        setImportResult(result);
+        // Refresh forms list
+        const { data: updatedForms } = await apiGet<Form[]>("/api/forms");
+        if (updatedForms) {
+          setForms(updatedForms);
+        }
+      } else {
+        setImportError(error || "Failed to import form");
+      }
+    } catch (err) {
+      console.error("Import error:", err);
+      setImportError(
+        err instanceof SyntaxError
+          ? "Invalid JSON file"
+          : "Failed to import form"
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }, [importFile]);
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportResult(null);
+    setImportError(null);
+  };
+
   // Show loading while checking auth status
   if (status === "loading") {
     return (
@@ -164,14 +240,20 @@ const FormsPage = () => {
                 Create beautiful forms and collect responses
               </p>
             </div>
-            <Button onClick={handleCreateForm} disabled={isCreating}>
-              {isCreating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              New Form
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleImportClick}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+              <Button onClick={handleCreateForm} disabled={isCreating}>
+                {isCreating ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                New Form
+              </Button>
+            </div>
           </div>
 
           {/* Forms List */}
@@ -329,6 +411,150 @@ const FormsPage = () => {
           )}
         </div>
       </main>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h2 className="text-lg font-display font-bold text-obsidian">
+                Import Form
+              </h2>
+              <button
+                onClick={closeImportModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {importResult ? (
+                // Success state
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-obsidian mb-2">
+                    Import Successful
+                  </h3>
+                  <p className="text-obsidian-muted mb-4">
+                    &ldquo;{importResult.title}&rdquo; has been imported with{" "}
+                    {importResult.questionsImported} questions
+                    {importResult.articlesImported > 0 &&
+                      ` and ${importResult.articlesImported} articles`}
+                    .
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="secondary" onClick={closeImportModal}>
+                      Close
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        router.push(`/form/${importResult.formId}/edit`);
+                        closeImportModal();
+                      }}
+                    >
+                      Edit Form
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // Upload state
+                <>
+                  <div
+                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                      importFile
+                        ? "border-chili-coral bg-red-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    {importFile ? (
+                      <div>
+                        <FileText className="w-12 h-12 text-chili-coral mx-auto mb-3" />
+                        <p className="font-medium text-obsidian">
+                          {importFile.name}
+                        </p>
+                        <p className="text-sm text-obsidian-muted mt-1">
+                          {(importFile.size / 1024).toFixed(1)} KB
+                        </p>
+                        <button
+                          onClick={() => {
+                            setImportFile(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          className="text-sm text-chili-coral hover:underline mt-2"
+                        >
+                          Choose a different file
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-obsidian mb-1">
+                          Drop your JSON file here, or{" "}
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-chili-coral hover:underline"
+                          >
+                            browse
+                          </button>
+                        </p>
+                        <p className="text-sm text-obsidian-muted">
+                          Export a form from another project to import it here
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {importError && (
+                    <div className="flex items-center gap-2 mt-4 p-3 bg-red-50 text-red-700 rounded-lg">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <p className="text-sm">{importError}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      variant="secondary"
+                      onClick={closeImportModal}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleImport}
+                      disabled={!importFile || isImporting}
+                      className="flex-1"
+                    >
+                      {isImporting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Import
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

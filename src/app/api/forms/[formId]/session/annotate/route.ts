@@ -9,6 +9,14 @@ import { logError } from "@/lib/logger";
  * Body: {
  *   sessionToken: string,
  *   articleId: string,
+ *   // Multi-selection support (new)
+ *   selections?: Array<{
+ *     text: string,
+ *     startIndex: number,
+ *     endIndex: number,
+ *     segmentIndex: number,
+ *   }>,
+ *   // Legacy single-selection fields (for backward compatibility)
  *   selectedText?: string,
  *   sentenceIndex?: number,
  *   startIndex?: number,
@@ -27,6 +35,9 @@ export async function POST(
     const {
       sessionToken,
       articleId,
+      // New multi-selection field
+      selections,
+      // Legacy single-selection fields
       selectedText,
       sentenceIndex,
       startIndex,
@@ -34,6 +45,30 @@ export async function POST(
       followUpAnswers,
       skipped = false,
     } = body;
+
+    // Prepare data for storage
+    // If selections array is provided, store it as JSON in selectedText field
+    // Otherwise use legacy single selection
+    const selectionsJson = selections && selections.length > 0
+      ? JSON.stringify(selections)
+      : null;
+
+    // For backward compatibility, use first selection's text if selections provided
+    const finalSelectedText = selectionsJson
+      ? (selections.length > 0 ? selections[0].text : "")
+      : selectedText;
+
+    const finalStartIndex = selectionsJson
+      ? (selections.length > 0 ? selections[0].startIndex : 0)
+      : startIndex;
+
+    const finalEndIndex = selectionsJson
+      ? (selections.length > 0 ? selections[0].endIndex : 0)
+      : endIndex;
+
+    const finalSentenceIndex = selectionsJson
+      ? (selections.length > 0 ? selections[0].segmentIndex : undefined)
+      : sentenceIndex;
 
     if (!sessionToken || !articleId) {
       return NextResponse.json(
@@ -104,10 +139,12 @@ export async function POST(
           articleId,
         },
         data: {
-          selectedText,
-          sentenceIndex,
-          startIndex,
-          endIndex,
+          selectedText: finalSelectedText,
+          sentenceIndex: finalSentenceIndex,
+          startIndex: finalStartIndex,
+          endIndex: finalEndIndex,
+          // Store selections array as JSON if provided
+          selections: selectionsJson,
           // Store all follow-up answers as JSON in followUpAnswer field
           followUpAnswer: followUpAnswers,
           skipped,
@@ -119,10 +156,12 @@ export async function POST(
         data: {
           sessionId: session.id,
           articleId,
-          selectedText,
-          sentenceIndex,
-          startIndex,
-          endIndex,
+          selectedText: finalSelectedText,
+          sentenceIndex: finalSentenceIndex,
+          startIndex: finalStartIndex,
+          endIndex: finalEndIndex,
+          // Store selections array as JSON if provided
+          selections: selectionsJson,
           // Store all follow-up answers as JSON in followUpAnswer field
           followUpAnswer: followUpAnswers,
           skipped,

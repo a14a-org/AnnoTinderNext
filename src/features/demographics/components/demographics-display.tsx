@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react'
 
 import { validateDemographics } from '../demographics'
 import { letterToIndex } from '@/lib/keyboard-shortcuts'
+import { DEFAULT_BRAND_COLOR } from '@/config/theme'
 
 export interface DemographicsDisplayProps {
   settings: DemographicsSettings
@@ -18,7 +19,7 @@ export interface DemographicsDisplayProps {
 
 export const DemographicsDisplay = ({
   settings,
-  brandColor = '#EF4444',
+  brandColor = DEFAULT_BRAND_COLOR,
   onComplete,
   disabled = false,
 }: DemographicsDisplayProps) => {

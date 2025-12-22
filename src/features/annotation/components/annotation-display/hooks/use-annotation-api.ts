@@ -16,6 +16,9 @@ export const useAnnotationApi = (
       const { error } = await apiPost(`/api/forms/${formId}/session/annotate`, {
         sessionToken,
         articleId,
+        // Multi-selection support (new)
+        selections: annotation.selections,
+        // Legacy single-selection fields (for backward compatibility)
         selectedText: annotation.selectedText,
         startIndex: annotation.startIndex,
         endIndex: annotation.endIndex,

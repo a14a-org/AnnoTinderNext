@@ -11,9 +11,10 @@ import {
   SelectionModeSection,
   FollowUpSection,
   DisplayOptionsSection,
+  MultiSelectSection,
 } from "./sections";
 
-type SectionKey = "texts" | "selection" | "followup" | "display";
+type SectionKey = "texts" | "selection" | "multiselect" | "followup" | "display";
 
 export const AnnotationEditor = ({
   settings: initialSettings,
@@ -29,6 +30,7 @@ export const AnnotationEditor = ({
   const [expandedSections, setExpandedSections] = useState<Record<SectionKey, boolean>>({
     texts: true,
     selection: false,
+    multiselect: false,
     followup: false,
     display: false,
   });
@@ -82,6 +84,13 @@ export const AnnotationEditor = ({
         updateSetting={updateSetting}
         expanded={expandedSections.selection}
         onToggle={() => toggleSection("selection")}
+      />
+
+      <MultiSelectSection
+        settings={settings}
+        updateSetting={updateSetting}
+        expanded={expandedSections.multiselect}
+        onToggle={() => toggleSection("multiselect")}
       />
 
       <FollowUpSection

@@ -7,6 +7,13 @@
 
 export type SelectionMode = 'word' | 'sentence'
 
+/**
+ * Multi-select mode determines how follow-up questions are handled
+ * - 'per-selection': User answers follow-up questions after each sentence selection, then can select more
+ * - 'batch': User selects multiple sentences first, then answers one set of follow-up questions for all
+ */
+export type MultiSelectMode = 'per-selection' | 'batch'
+
 export type FollowUpType = 'multiple_choice' | 'open_text' | 'rating_scale'
 
 export interface FollowUpOption {
@@ -56,11 +63,25 @@ export interface TextAnnotationSettings {
   texts: TextItem[]
   practiceTexts: TextItem[]
   showPracticeFirst: boolean
+  /** @deprecated Use nothingFoundButtonText instead */
   allowSkip: boolean
+  /** @deprecated Use nothingFoundButtonText instead */
   skipButtonText: string
   instructionText: string
   highlightColor: string
   minimumTimeOnPage: number
+
+  // Multi-selection settings
+  /** How follow-up questions are handled: per-selection or batch */
+  multiSelectMode: MultiSelectMode
+  /** Maximum number of sentences that can be selected per article */
+  maxSelectionsPerArticle: number
+  /** Minimum number of selections required (0 allows "nothing found" without selections) */
+  minSelectionsPerArticle: number
+  /** Maximum times user can click "nothing found" per session (0 = unlimited) */
+  maxNothingFoundPerSession: number
+  /** Button text for "I don't find any harmful sentences" action */
+  nothingFoundButtonText: string
 }
 
 export const DEFAULT_ANNOTATION_SETTINGS: TextAnnotationSettings = {
@@ -94,14 +115,40 @@ export const DEFAULT_ANNOTATION_SETTINGS: TextAnnotationSettings = {
   instructionText: 'Selecteer een passage in de tekst hieronder',
   highlightColor: '#fef08a',
   minimumTimeOnPage: 5,
+  // Multi-selection defaults
+  multiSelectMode: 'per-selection',
+  maxSelectionsPerArticle: 10,
+  minSelectionsPerArticle: 1,
+  maxNothingFoundPerSession: 2,
+  nothingFoundButtonText: 'Ik vind geen schadelijke zin in dit artikel',
+}
+
+/**
+ * Represents a single text selection with its position in the original text
+ */
+export interface SelectionRange {
+  /** The actual selected text content */
+  text: string
+  /** Character position start in original text */
+  startIndex: number
+  /** Character position end in original text */
+  endIndex: number
+  /** Index of the segment in the segments array (to handle duplicate sentences) */
+  segmentIndex: number
 }
 
 export interface Annotation {
   textId: string
+  /** @deprecated Use selections array instead for multi-select support */
   selectedText: string
+  /** @deprecated Use selections array instead for multi-select support */
   startIndex: number
+  /** @deprecated Use selections array instead for multi-select support */
   endIndex: number
+  /** Array of all selections made on this text (for multi-select) */
+  selections: SelectionRange[]
   followUpAnswers: Record<string, string | number | null>
+  /** True if user clicked "nothing found" (no harmful sentences) */
   skipped: boolean
 }
 

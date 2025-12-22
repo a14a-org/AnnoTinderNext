@@ -9,18 +9,26 @@
  * while this TypeScript config can be used for runtime color access.
  */
 
+/**
+ * Default brand color used throughout the application.
+ * Change this single value to update the default brand color everywhere.
+ */
+export const DEFAULT_BRAND_COLOR = '#FFD500';
+
 export const colors = {
   /**
-   * Brand Colors - "Chili" Palette
+   * Brand Colors - "Omroep Zwart" Palette
    * The primary brand color used for buttons, links, and interactive elements
    */
   brand: {
-    /** Primary brand red - used for buttons, active states, focus rings */
-    primary: '#FFFA5F',
+    /** Primary brand yellow - used for buttons, active states, focus rings */
+    primary: '#FFD500',
     /** Lighter variant - used for hover states */
-    primaryHover: '#FF8F93',
+    primaryHover: '#FFE033',
     /** Darker variant - used for active/pressed states */
-    primaryActive: '#D93E43',
+    primaryActive: '#E6C000',
+    /** Black - used for text on yellow, backgrounds */
+    black: '#000000',
   },
 
   /**
@@ -55,9 +63,10 @@ export const colors = {
  */
 export const cssVars = {
   brand: {
-    primary: '--color-chili-coral',
-    primaryHover: '--color-chili-light',
-    primaryActive: '--color-chili-dark',
+    primary: '--color-oz-yellow',
+    primaryHover: '--color-oz-yellow-light',
+    primaryActive: '--color-oz-yellow-dark',
+    black: '--color-oz-black',
   },
   secondary: {
     teal: '--color-bio-teal',
@@ -80,9 +89,10 @@ export const cssVars = {
  */
 export const tailwindColors = {
   brand: {
-    primary: 'chili-coral',
-    primaryHover: 'chili-light',
-    primaryActive: 'chili-dark',
+    primary: 'oz-yellow',
+    primaryHover: 'oz-yellow-light',
+    primaryActive: 'oz-yellow-dark',
+    black: 'oz-black',
   },
   secondary: {
     teal: 'bio-teal',

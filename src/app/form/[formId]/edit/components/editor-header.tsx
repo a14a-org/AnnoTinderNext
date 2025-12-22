@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
+  Download,
   ExternalLink,
   Eye,
   FileText,
@@ -31,6 +32,7 @@ interface EditorHeaderProps {
   onTitleChange: (title: string) => void;
   onToggleSettings: () => void;
   onTogglePublish: () => void;
+  onExport?: () => void;
 }
 
 export const EditorHeader = ({
@@ -41,6 +43,7 @@ export const EditorHeader = ({
   onTitleChange,
   onToggleSettings,
   onTogglePublish,
+  onExport,
 }: EditorHeaderProps) => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -139,6 +142,15 @@ export const EditorHeader = ({
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
+          {onExport && (
+            <Button
+              variant="ghost"
+              onClick={onExport}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={() => window.open(`/f/${form.slug}?preview=true`, "_blank")}
@@ -263,6 +275,19 @@ export const EditorHeader = ({
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Button>
+                {onExport && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      onExport();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="justify-start w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

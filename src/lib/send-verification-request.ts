@@ -1,5 +1,6 @@
 
 import { Resend } from "resend";
+import { DEFAULT_BRAND_COLOR } from "@/config/theme";
 
 export async function sendVerificationRequest(params: {
     identifier: string;
@@ -43,14 +44,14 @@ export async function sendVerificationRequest(params: {
 function html(params: { url: string; host: string }) {
     const { url, host } = params;
 
-    const brandColor = "#E63946"; // chili-coral, matching the brand
+    const brandColor = DEFAULT_BRAND_COLOR; // Omroep Zwart yellow
     const color = {
         background: "#f9f9f9",
         text: "#444",
         mainBackground: "#ffffff",
         buttonBackground: brandColor,
         buttonBorder: brandColor,
-        buttonText: "#fff",
+        buttonText: "#000000", // Black text on yellow for OZ brand
     };
 
     return `

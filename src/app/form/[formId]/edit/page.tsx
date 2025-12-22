@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Reorder } from "framer-motion";
 import { Heart, Loader2, Play, ShieldCheck, Users } from "lucide-react";
@@ -123,6 +123,37 @@ const FormEditorPage = () => {
     formId, form, setForm, fetchForm, setSelectedQuestion, setShowAddMenu,
   });
 
+  const handleExport = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/forms/${formId}/export`);
+      if (!response.ok) {
+        throw new Error("Failed to export form");
+      }
+
+      // Get filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = "form-export.json";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export form. Please try again.");
+    }
+  }, [formId]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
@@ -151,6 +182,7 @@ const FormEditorPage = () => {
         onTitleChange={setTitle}
         onToggleSettings={() => setShowSettings(!showSettings)}
         onTogglePublish={handlePublishClick}
+        onExport={handleExport}
       />
 
       {showValidationAlert && (

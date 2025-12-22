@@ -4,23 +4,94 @@ import { AnimatePresence, motion } from "framer-motion";
 
 interface TextDisplayProps {
   segments: string[];
-  selectedText: string | null;
   selectionMode: SelectionMode;
   highlightColor: string;
   brandColor: string;
   currentIndex: number;
   onSegmentClick: (segment: string, index: number) => void;
+  /** Check if a segment is currently selected */
+  isSegmentSelected: (segmentIndex: number) => boolean;
+  /** Check if a segment has been answered (per-selection mode) */
+  isSegmentAnswered: (segmentIndex: number) => boolean;
+  /** Whether user can add more selections */
+  canAddMore: boolean;
+  /** @deprecated Use isSegmentSelected instead */
+  selectedText?: string | null;
 }
 
 export const TextDisplay = ({
   segments,
-  selectedText,
   selectionMode,
   highlightColor,
   brandColor,
   currentIndex,
   onSegmentClick,
+  isSegmentSelected,
+  isSegmentAnswered,
+  canAddMore,
 }: TextDisplayProps) => {
+  const getSegmentStyle = (index: number) => {
+    const isSelected = isSegmentSelected(index);
+    const isAnswered = isSegmentAnswered(index);
+
+    if (isAnswered) {
+      // Answered selections: solid highlight with checkmark indicator
+      return {
+        backgroundColor: highlightColor,
+        borderColor: brandColor,
+        opacity: 0.9,
+      };
+    }
+
+    if (isSelected) {
+      // Pending selection: highlight with ring
+      return {
+        backgroundColor: highlightColor,
+        borderColor: brandColor,
+      };
+    }
+
+    return {};
+  };
+
+  const getSegmentClassName = (index: number) => {
+    const isSelected = isSegmentSelected(index);
+    const isAnswered = isSegmentAnswered(index);
+
+    const baseClasses = "transition-all duration-200 rounded px-1";
+
+    if (isAnswered) {
+      // Answered: show as committed, not clickable
+      return `${baseClasses} cursor-default ring-2 ring-offset-1`;
+    }
+
+    if (isSelected) {
+      // Selected but not answered: can be deselected
+      return `${baseClasses} cursor-pointer ring-2 ring-offset-1`;
+    }
+
+    if (!canAddMore) {
+      // Max selections reached: not clickable
+      return `${baseClasses} cursor-not-allowed opacity-60`;
+    }
+
+    // Default: clickable
+    return `${baseClasses} cursor-pointer hover:bg-gray-100`;
+  };
+
+  const handleClick = (segment: string, index: number) => {
+    const isAnswered = isSegmentAnswered(index);
+    const isSelected = isSegmentSelected(index);
+
+    // Don't allow clicking on answered segments
+    if (isAnswered) return;
+
+    // Don't allow adding if max reached (but allow deselecting)
+    if (!canAddMore && !isSelected) return;
+
+    onSegmentClick(segment, index);
+  };
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -35,52 +106,48 @@ export const TextDisplay = ({
           {selectionMode === "sentence" ? (
             // Sentence mode: render sentences as clickable blocks
             <div className="space-y-2">
-              {segments.map((segment, index) => (
-                <span
-                  key={index}
-                  onClick={() => onSegmentClick(segment, index)}
-                  className={`inline cursor-pointer transition-all duration-200 rounded px-1 -mx-1 ${
-                    selectedText === segment
-                      ? "ring-2 ring-offset-1"
-                      : "hover:bg-gray-100"
-                  }`}
-                  style={{
-                    backgroundColor:
-                      selectedText === segment
-                        ? highlightColor
-                        : undefined,
-                    borderColor:
-                      selectedText === segment ? brandColor : undefined,
-                  }}
-                >
-                  {segment}{" "}
-                </span>
-              ))}
+              {segments.map((segment, index) => {
+                const isAnswered = isSegmentAnswered(index);
+
+                return (
+                  <span
+                    key={index}
+                    onClick={() => handleClick(segment, index)}
+                    className={`inline ${getSegmentClassName(index)} -mx-1`}
+                    style={getSegmentStyle(index)}
+                  >
+                    {isAnswered && (
+                      <span className="text-xs mr-1" title="Beantwoord">
+                        ✓
+                      </span>
+                    )}
+                    {segment}{" "}
+                  </span>
+                );
+              })}
             </div>
           ) : (
             // Word mode: render words as clickable spans
             <div className="flex flex-wrap gap-1">
-              {segments.map((segment, index) => (
-                <span
-                  key={index}
-                  onClick={() => onSegmentClick(segment, index)}
-                  className={`cursor-pointer transition-all duration-200 rounded px-1 ${
-                    selectedText === segment
-                      ? "ring-2 ring-offset-1"
-                      : "hover:bg-gray-100"
-                  }`}
-                  style={{
-                    backgroundColor:
-                      selectedText === segment
-                        ? highlightColor
-                        : undefined,
-                    borderColor:
-                      selectedText === segment ? brandColor : undefined,
-                  }}
-                >
-                  {segment}
-                </span>
-              ))}
+              {segments.map((segment, index) => {
+                const isAnswered = isSegmentAnswered(index);
+
+                return (
+                  <span
+                    key={index}
+                    onClick={() => handleClick(segment, index)}
+                    className={getSegmentClassName(index)}
+                    style={getSegmentStyle(index)}
+                  >
+                    {isAnswered && (
+                      <span className="text-xs mr-0.5" title="Beantwoord">
+                        ✓
+                      </span>
+                    )}
+                    {segment}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>

@@ -41,6 +41,11 @@ const safeParseSettings = (initialSettings: TextAnnotationSettings | null): Text
       followUpQuestions = DEFAULT_ANNOTATION_SETTINGS.followUpQuestions;
     }
 
+    // Handle backward compatibility for nothingFoundButtonText (from skipButtonText)
+    const nothingFoundButtonText = initialSettings?.nothingFoundButtonText
+      ?? initialSettings?.skipButtonText
+      ?? DEFAULT_ANNOTATION_SETTINGS.nothingFoundButtonText;
+
     return {
       texts,
       practiceTexts,
@@ -54,6 +59,12 @@ const safeParseSettings = (initialSettings: TextAnnotationSettings | null): Text
       minimumTimeOnPage: initialSettings?.minimumTimeOnPage ?? DEFAULT_ANNOTATION_SETTINGS.minimumTimeOnPage,
       followUp: undefined,
       followUpQuestions,
+      // Multi-selection settings with defaults
+      multiSelectMode: initialSettings?.multiSelectMode ?? DEFAULT_ANNOTATION_SETTINGS.multiSelectMode,
+      maxSelectionsPerArticle: initialSettings?.maxSelectionsPerArticle ?? DEFAULT_ANNOTATION_SETTINGS.maxSelectionsPerArticle,
+      minSelectionsPerArticle: initialSettings?.minSelectionsPerArticle ?? DEFAULT_ANNOTATION_SETTINGS.minSelectionsPerArticle,
+      maxNothingFoundPerSession: initialSettings?.maxNothingFoundPerSession ?? DEFAULT_ANNOTATION_SETTINGS.maxNothingFoundPerSession,
+      nothingFoundButtonText,
     };
   } catch {
     console.warn("Failed to parse annotation settings, using defaults");
