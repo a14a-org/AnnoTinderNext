@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logError } from "@/lib/logger";
 import { buildDynataRedirectFromForm } from "@/lib/dynata";
+import { isUnder18 } from "@/lib/age-validation";
 import {
   classifyParticipant,
   DEFAULT_QUOTA_SETTINGS,
@@ -137,6 +138,30 @@ export const POST = async (
     const quotaSettings: QuotaSettings = form.quotaSettings
       ? JSON.parse(form.quotaSettings)
       : DEFAULT_QUOTA_SETTINGS;
+
+    // Check age requirement (if birthDate provided)
+    if (demographicData.birthDate && isUnder18(demographicData.birthDate)) {
+      // Screen out under-18 participants
+      await db.annotationSession.update({
+        where: { id: session.id },
+        data: {
+          gender: demographicData.gender,
+          ethnicity: demographicData.ethnicity,
+          ageRange: demographicData.ageRange,
+          status: "screened_out",
+        },
+      });
+
+      return NextResponse.json(
+        {
+          assigned: false,
+          reason: "under_age",
+          message: "Je moet minimaal 18 jaar oud zijn om deel te nemen aan dit onderzoek.",
+          returnUrl: buildDynataRedirectFromForm(form, session, "screenout"),
+        },
+        { status: 409 }
+      );
+    }
 
     // Classify participant into a demographic group
     const demographicGroup = classifyParticipant(demographicData, quotaSettings);

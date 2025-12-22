@@ -1,11 +1,10 @@
-import type { FollowUpQuestion, TextAnnotationSettings } from "@/features/annotation";
+import type { FollowUpQuestion, TextAnnotationSettings, SelectionRange, MultiSelectMode } from "@/features/annotation";
 
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface FollowUpModalProps {
   showFollowUp: boolean;
-  selectedText: string | null;
   highlightColor: string;
   brandColor: string;
   settings: TextAnnotationSettings;
@@ -16,11 +15,18 @@ interface FollowUpModalProps {
   onFollowUpSubmit: () => void;
   setFollowUpAnswers: (answers: Record<string, string | number | null> | ((prev: Record<string, string | number | null>) => Record<string, string | number | null>)) => void;
   getSubmitButtonText: () => string;
+  /** Multi-select mode */
+  multiSelectMode: MultiSelectMode;
+  /** Current selection being answered (per-selection mode) */
+  currentSelection: SelectionRange | null;
+  /** All pending selections (batch mode) */
+  pendingSelections: SelectionRange[];
+  /** @deprecated Use currentSelection or pendingSelections instead */
+  selectedText?: string | null;
 }
 
 export const FollowUpModal = ({
   showFollowUp,
-  selectedText,
   highlightColor,
   brandColor,
   settings,
@@ -31,6 +37,9 @@ export const FollowUpModal = ({
   onFollowUpSubmit,
   setFollowUpAnswers,
   getSubmitButtonText,
+  multiSelectMode,
+  currentSelection,
+  pendingSelections,
 }: FollowUpModalProps) => {
   // Get follow-up questions (with fallback from old single followUp format)
   const followUpQuestions: FollowUpQuestion[] = useMemo(() => {
@@ -64,9 +73,23 @@ export const FollowUpModal = ({
     });
   }, [followUpQuestions, followUpAnswers]);
 
+  // Get selected texts to display based on mode
+  const selectedTexts = useMemo(() => {
+    if (multiSelectMode === "per-selection" && currentSelection) {
+      return [currentSelection.text];
+    }
+    if (multiSelectMode === "batch" && pendingSelections.length > 0) {
+      return pendingSelections.map((s) => s.text);
+    }
+    return [];
+  }, [multiSelectMode, currentSelection, pendingSelections]);
+
+  // Determine if we should show the modal
+  const shouldShow = showFollowUp && selectedTexts.length > 0;
+
   return (
     <AnimatePresence>
-      {showFollowUp && selectedText && (
+      {shouldShow && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -74,19 +97,32 @@ export const FollowUpModal = ({
           className="bg-gray-50 rounded-xl p-6 mb-6"
         >
           <div className="mb-4">
-            <p className="text-sm text-gray-500 mb-1">Selected:</p>
-            <p
-              className="text-sm font-medium px-2 py-1 rounded inline-block"
-              style={{ backgroundColor: highlightColor }}
-            >
-              &ldquo;{selectedText}&rdquo;
+            <p className="text-sm text-gray-500 mb-1">
+              {selectedTexts.length === 1 ? "Geselecteerd:" : `Geselecteerd (${selectedTexts.length}):`}
             </p>
-            <button
-              onClick={onClearSelection}
-              className="ml-2 text-xs text-gray-500 hover:text-gray-700 underline"
-            >
-              Clear selection
-            </button>
+
+            {/* Show single or multiple selected texts */}
+            <div className="space-y-2">
+              {selectedTexts.map((text, index) => (
+                <p
+                  key={index}
+                  className="text-sm font-medium px-2 py-1 rounded inline-block mr-2"
+                  style={{ backgroundColor: highlightColor }}
+                >
+                  &ldquo;{text}&rdquo;
+                </p>
+              ))}
+            </div>
+
+            {/* Only show clear button in per-selection mode */}
+            {multiSelectMode === "per-selection" && (
+              <button
+                onClick={onClearSelection}
+                className="mt-2 text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Annuleren
+              </button>
+            )}
           </div>
 
           {/* Render all follow-up questions */}
@@ -143,7 +179,7 @@ export const FollowUpModal = ({
                         [question.id]: e.target.value,
                       }))
                     }
-                    placeholder={question.placeholder || "Type your answer..."}
+                    placeholder={question.placeholder || "Typ je antwoord..."}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1"
                     style={
                       { "--tw-ring-color": brandColor } as React.CSSProperties

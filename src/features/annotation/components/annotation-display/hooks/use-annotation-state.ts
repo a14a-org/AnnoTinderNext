@@ -1,7 +1,7 @@
 import type { Annotation, TextAnnotationSettings } from "@/features/annotation";
 import type { Phase } from "../types";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export const useAnnotationState = (settings: TextAnnotationSettings) => {
   // Ensure practiceTexts is always an array (may be undefined in older settings)
@@ -19,17 +19,27 @@ export const useAnnotationState = (settings: TextAnnotationSettings) => {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Track "nothing found" count for the session
+  const [nothingFoundCount, setNothingFoundCount] = useState(0);
+
   // Get the appropriate text list based on phase
   const currentTexts = phase === "practice" ? practiceTexts : texts;
   const currentText = currentTexts[currentIndex];
   const totalTexts = currentTexts.length;
   const progress = totalTexts > 0 ? ((currentIndex + 1) / totalTexts) * 100 : 0;
 
+  // Check if user can still use "nothing found" (based on limit)
+  const maxNothingFound = settings.maxNothingFoundPerSession ?? 2;
+  const canUseNothingFound = useMemo(() => {
+    if (maxNothingFound === 0) return true; // 0 = unlimited
+    return nothingFoundCount < maxNothingFound;
+  }, [nothingFoundCount, maxNothingFound]);
+
   // Helper to get the submit button text
   const getSubmitButtonText = (): string => {
-    if (isSaving) return "Saving...";
-    if (currentIndex < totalTexts - 1) return "Next Text";
-    return "Complete";
+    if (isSaving) return "Opslaan...";
+    if (currentIndex < totalTexts - 1) return "Volgende";
+    return "Voltooien";
   };
 
   const nextText = () => {
@@ -40,10 +50,15 @@ export const useAnnotationState = (settings: TextAnnotationSettings) => {
     return true; // Done with current phase
   };
 
+  const incrementNothingFoundCount = () => {
+    setNothingFoundCount((prev) => prev + 1);
+  };
+
   const resetForMainPhase = () => {
     setPhase("main");
     setCurrentIndex(0);
     setAnnotations([]);
+    // Don't reset nothingFoundCount - it persists across phases
   };
 
   const transitionToMain = () => {
@@ -67,5 +82,10 @@ export const useAnnotationState = (settings: TextAnnotationSettings) => {
     nextText,
     resetForMainPhase,
     transitionToMain,
+    // Nothing found tracking
+    nothingFoundCount,
+    canUseNothingFound,
+    incrementNothingFoundCount,
+    maxNothingFoundPerSession: maxNothingFound,
   };
 };

@@ -15,6 +15,7 @@ import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button } from "@/components/ui";
 import { apiPost } from "@/lib/api";
 import { letterToIndex } from "@/lib/keyboard-shortcuts";
+import { DEFAULT_BRAND_COLOR } from "@/config/theme";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS, DemographicsDisplay } from "@/features/demographics";
 import {
   ConsentDeclinedDisplay,
@@ -87,7 +88,7 @@ const PublicFormPage = () => {
   ).length || 0;
   const progress = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
-  const brandColor = form?.brandColor || "#FF5A5F";
+  const brandColor = form?.brandColor || DEFAULT_BRAND_COLOR;
 
   // Can proceed check
   const canProceedNow = useCallback(() => {

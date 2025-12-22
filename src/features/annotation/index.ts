@@ -10,6 +10,7 @@ export type { AnnotationEditorProps } from './components/annotation-editor'
 export { AnnotationDisplay } from './components/annotation-display'
 export type {
   SelectionMode,
+  MultiSelectMode,
   FollowUpType,
   FollowUpOption,
   FollowUpQuestion,
@@ -17,6 +18,7 @@ export type {
   TextItem,
   TextSource,
   TextAnnotationSettings,
+  SelectionRange,
   Annotation,
   AnnotationAnswer,
 } from './text-annotation'
@@ -26,6 +28,7 @@ export {
   followUpQuestionSchema,
   textItemSchema,
   textAnnotationSettingsSchema,
+  selectionRangeSchema,
   annotationSchema,
   annotateRequestSchema,
 } from './schemas/annotation.schema'
@@ -33,6 +36,7 @@ export type {
   FollowUpOptionInput,
   FollowUpQuestionInput,
   TextItemInput,
+  SelectionRangeInput,
   TextAnnotationSettingsInput,
   AnnotationInput,
   AnnotateRequestInput,

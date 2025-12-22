@@ -1,18 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors */
-  --color-chili-coral: #FF5A5F;
-  --color-chili-light: #FF8F93;
-  --color-chili-dark: #D93E43;
+  /* Omroep Zwart Brand Colors */
+  --color-oz-yellow: #FFD500;
+  --color-oz-yellow-light: #FFE033;
+  --color-oz-yellow-dark: #E6C000;
+  --color-oz-black: #000000;
 
+  /* Legacy alias for backward compatibility */
+  --color-chili-coral: #FFD500;
+  --color-chili-light: #FFE033;
+  --color-chili-dark: #E6C000;
+
+  /* Secondary Colors */
   --color-bio-teal: #38B2AC;
   --color-bio-soft: #E6FFFA;
 
+  /* Text Colors */
   --color-obsidian: #1A202C;
   --color-obsidian-muted: #4A5568;
   --color-obsidian-light: #718096;
 
+  /* Background Colors */
   --color-canvas: #F7F9FC;
   --color-canvas-white: #FFFFFF;
 

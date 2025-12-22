@@ -307,11 +307,14 @@ model ArticleAnnotation {
   sessionId String
   articleId String
 
-  // Selection data
-  selectedText  String? // The text that was selected
+  // Selection data (legacy single-selection fields)
+  selectedText  String? // The text that was selected (or first selection text for backward compat)
   sentenceIndex Int? // Which sentence (0-indexed, if sentence mode)
   startIndex    Int? // Character start position in original text
   endIndex      Int? // Character end position in original text
+
+  // Multi-selection support (new)
+  selections String? // JSON array of SelectionRange objects
 
   // Follow-up question response
   followUpType   String? // "multiple_choice" | "open_text" | "rating_scale"

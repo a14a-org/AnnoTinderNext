@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiGet, apiPut } from "@/lib/api";
+import { DEFAULT_BRAND_COLOR } from "@/config/theme";
 
 import { DEFAULT_QUOTA_SETTINGS } from "../constants";
 
@@ -47,7 +48,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
   const [isLoading, setIsLoading] = useState(true);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [brandColor, setBrandColor] = useState("#FF5A5F");
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
   const [isPublished, setIsPublished] = useState(false);
   const [articlesPerSession, setArticlesPerSession] = useState(20);
   const [sessionTimeoutMins, setSessionTimeoutMins] = useState(10);
@@ -68,7 +69,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
       setForm(data);
       setTitle(data.title);
       setDescription(data.description || "");
-      setBrandColor(data.brandColor || "#FF5A5F");
+      setBrandColor(data.brandColor || DEFAULT_BRAND_COLOR);
       setIsPublished(data.isPublished);
       setArticlesPerSession(data.articlesPerSession ?? 20);
       setSessionTimeoutMins(data.sessionTimeoutMins ?? 10);
@@ -119,7 +120,7 @@ export const useFormEditor = (formId: string): UseFormEditorResult => {
         setForm(data);
         setTitle(data.title);
         setDescription(data.description || "");
-        setBrandColor(data.brandColor || "#FF5A5F");
+        setBrandColor(data.brandColor || DEFAULT_BRAND_COLOR);
         setIsPublished(data.isPublished);
         setArticlesPerSession(data.articlesPerSession ?? 20);
         setSessionTimeoutMins(data.sessionTimeoutMins ?? 10);
