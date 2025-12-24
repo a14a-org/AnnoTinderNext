@@ -1,4 +1,4 @@
-// Prisma schema for ChiliForm
+// Prisma schema for OmroepZwart
 // SQLite for development, easily switch to PostgreSQL by changing provider
 
 generator client {
