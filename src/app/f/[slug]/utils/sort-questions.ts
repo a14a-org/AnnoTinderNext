@@ -17,12 +17,12 @@ export const sortQuestionsForFlow = (questions: Question[]) => {
       q.type !== "THANK_YOU_SCREEN"
   );
 
-  // Return in correct order: Welcome -> Consent -> Instructions -> Demographics -> Regular -> Thank You
+  // Return in correct order: Welcome -> Consent -> Demographics -> Instructions -> Regular -> Thank You
   return [
     welcomeScreen,
     informedConsent,
-    instructions,
     demographics,
+    instructions,
     ...regularQuestions,
     thankYouScreen,
   ].filter((q): q is Question => q !== undefined);
