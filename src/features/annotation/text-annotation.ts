@@ -32,6 +32,8 @@ export interface FollowUpQuestion {
   maxRating: number | undefined
   minLabel: string | undefined
   maxLabel: string | undefined
+  /** Minimum number of words required for open_text type */
+  minWords: number | undefined
 }
 
 /** @deprecated Use FollowUpQuestion instead */
@@ -104,6 +106,7 @@ export const DEFAULT_ANNOTATION_SETTINGS: TextAnnotationSettings = {
       maxRating: undefined,
       minLabel: undefined,
       maxLabel: undefined,
+      minWords: undefined,
     },
   ],
   textSource: 'database',

@@ -216,30 +216,36 @@ export async function GET(
       });
     }
 
-    // --- Export Type: DF2 (Coder ID; Dynata ID; Article ID; Sentence Selection; Selected Segments; Explanation) ---
+    // --- Export Type: DF2 (Coder ID; Dynata ID; Job Set ID; Article ID; Sentence Selection; Selected Segments; Explanation) ---
     if (exportType === "df2") {
       const csvRows = [];
       csvRows.push([
         "coder id",
         "dynata id/psid",
+        "job set id",
         "article id",
-        "article short id", // Added for clarity
+        "article short id",
         "sentence selection (y/n)",
         "selected segments",
         "explanation",
-        "skipped (y/n)", // Added for clarity
+        "skipped (y/n)",
       ].map(escapeCsv).join(";"));
 
       for (const session of sessions) {
         for (const annotation of session.annotations) {
+          // Get explanation from followUpAnswer - check common field names
+          const followUpAnswers = annotation.followUpAnswer ? JSON.parse(annotation.followUpAnswer) : {};
+          const explanation = followUpAnswers?.["reason"] || followUpAnswers?.["migrated-q1"] || "";
+
           const rowData: (string | number)[] = [
             session.id,
             session.externalPid || "",
+            session.jobSet?.shortId || "",
             annotation.articleId,
             annotation.article?.shortId || "",
             annotation.selectedText ? "y" : "n",
             annotation.selectedText || "",
-            (annotation.followUpAnswer ? JSON.parse(annotation.followUpAnswer) : {})?.["migrated-q1"] || "", // Assuming single open-ended follow-up for explanation for now
+            explanation,
             annotation.skipped ? "y" : "n",
           ];
           csvRows.push(rowData.map(escapeCsv).join(";"));

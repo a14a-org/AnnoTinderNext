@@ -36,6 +36,7 @@ const safeParseSettings = (initialSettings: TextAnnotationSettings | null): Text
         maxRating: initialSettings.followUp.maxRating,
         minLabel: initialSettings.followUp.minLabel,
         maxLabel: initialSettings.followUp.maxLabel,
+        minWords: undefined,
       }];
     } else {
       followUpQuestions = DEFAULT_ANNOTATION_SETTINGS.followUpQuestions;
