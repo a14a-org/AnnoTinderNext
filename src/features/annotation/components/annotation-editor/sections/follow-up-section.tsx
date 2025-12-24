@@ -31,6 +31,7 @@ export const FollowUpSection = ({
       maxRating: undefined,
       minLabel: undefined,
       maxLabel: undefined,
+      minWords: undefined,
     };
     setSettings((prev) => ({
       ...prev,
@@ -164,13 +165,25 @@ export const FollowUpSection = ({
               )}
 
               {question.type === "open_text" && (
-                <div>
-                  <label className="block text-xs font-medium text-obsidian-muted mb-1">Placeholder</label>
-                  <Input
-                    value={question.placeholder || ""}
-                    onChange={(e) => updateFollowUpQuestion(qIndex, { placeholder: e.target.value })}
-                    placeholder="Type your answer here..."
-                  />
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-medium text-obsidian-muted mb-1">Placeholder</label>
+                    <Input
+                      value={question.placeholder || ""}
+                      onChange={(e) => updateFollowUpQuestion(qIndex, { placeholder: e.target.value })}
+                      placeholder="Type your answer here..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-obsidian-muted mb-1">Minimum words (0 = no minimum)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={question.minWords ?? 0}
+                      onChange={(e) => updateFollowUpQuestion(qIndex, { minWords: parseInt(e.target.value) || 0 })}
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
               )}
 

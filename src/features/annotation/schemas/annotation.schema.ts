@@ -16,6 +16,7 @@ export const followUpQuestionSchema = z.object({
   maxRating: z.number().optional(),
   minLabel: z.string().optional(),
   maxLabel: z.string().optional(),
+  minWords: z.number().min(0).optional(),
 })
 
 export const textItemSchema = z.object({

@@ -59,19 +59,50 @@ export const FollowUpModal = ({
         maxRating: settings.followUp.maxRating,
         minLabel: settings.followUp.minLabel,
         maxLabel: settings.followUp.maxLabel,
+        minWords: undefined,
       }];
     }
     return [];
   }, [settings.followUpQuestions, settings.followUp]);
 
-  // Check if all required questions are answered
-  const canSubmit = useMemo(() => {
-    return followUpQuestions.every((q) => {
-      if (!q.isRequired) return true;
+  // Helper to count words in a string
+  const countWords = (text: string): number => {
+    return text.trim().split(/\s+/).filter((word) => word.length > 0).length;
+  };
+
+  // Check validation for each question
+  const questionValidation = useMemo(() => {
+    return followUpQuestions.map((q) => {
       const answer = followUpAnswers[q.id];
-      return answer !== null && answer !== undefined && answer !== "";
+      const hasAnswer = answer !== null && answer !== undefined && answer !== "";
+
+      // Check minWords for open_text
+      if (q.type === "open_text" && q.minWords && q.minWords > 0 && typeof answer === "string") {
+        const wordCount = countWords(answer);
+        const meetsMinWords = wordCount >= q.minWords;
+        return {
+          id: q.id,
+          isValid: !q.isRequired || (hasAnswer && meetsMinWords),
+          wordCount,
+          minWords: q.minWords,
+          needsMoreWords: hasAnswer && !meetsMinWords,
+        };
+      }
+
+      return {
+        id: q.id,
+        isValid: !q.isRequired || hasAnswer,
+        wordCount: 0,
+        minWords: 0,
+        needsMoreWords: false,
+      };
     });
   }, [followUpQuestions, followUpAnswers]);
+
+  // Check if all required questions are answered (and meet minWords)
+  const canSubmit = useMemo(() => {
+    return questionValidation.every((v) => v.isValid);
+  }, [questionValidation]);
 
   // Get selected texts to display based on mode
   const selectedTexts = useMemo(() => {
@@ -170,23 +201,42 @@ export const FollowUpModal = ({
                 )}
 
                 {/* Open Text */}
-                {question.type === "open_text" && (
-                  <textarea
-                    value={(followUpAnswers[question.id] as string) || ""}
-                    onChange={(e) =>
-                      setFollowUpAnswers((prev) => ({
-                        ...prev,
-                        [question.id]: e.target.value,
-                      }))
-                    }
-                    placeholder={question.placeholder || "Typ je antwoord..."}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1"
-                    style={
-                      { "--tw-ring-color": brandColor } as React.CSSProperties
-                    }
-                    rows={3}
-                  />
-                )}
+                {question.type === "open_text" && (() => {
+                  const validation = questionValidation.find((v) => v.id === question.id);
+                  const currentWordCount = validation?.wordCount ?? 0;
+                  const minWords = question.minWords ?? 0;
+                  const needsMoreWords = validation?.needsMoreWords ?? false;
+
+                  return (
+                    <div>
+                      <textarea
+                        value={(followUpAnswers[question.id] as string) || ""}
+                        onChange={(e) =>
+                          setFollowUpAnswers((prev) => ({
+                            ...prev,
+                            [question.id]: e.target.value,
+                          }))
+                        }
+                        placeholder={question.placeholder || "Typ je antwoord..."}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                          needsMoreWords ? "border-amber-400" : "border-gray-200"
+                        }`}
+                        style={
+                          { "--tw-ring-color": brandColor } as React.CSSProperties
+                        }
+                        rows={3}
+                      />
+                      {minWords > 0 && (
+                        <div className={`mt-1 text-xs ${
+                          needsMoreWords ? "text-amber-600" : "text-gray-400"
+                        }`}>
+                          {currentWordCount}/{minWords} woorden
+                          {needsMoreWords && ` (nog ${minWords - currentWordCount} nodig)`}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Rating Scale */}
                 {question.type === "rating_scale" && (
