@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ChiliForm",
+  title: "OmroepZwart",
   description: "Create beautiful forms and collect responses",
 };
 

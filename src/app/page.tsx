@@ -209,7 +209,7 @@ const FormsPage = () => {
             <div className="w-8 h-8 bg-chili-coral rounded-lg flex items-center justify-center">
               <FileText className="w-4 h-4 text-white" />
             </div>
-            <span className="font-display font-bold text-obsidian">ChiliForm</span>
+            <span className="font-display font-bold text-obsidian">OmroepZwart</span>
           </div>
           {session?.user && (
             <div className="flex items-center gap-4">
