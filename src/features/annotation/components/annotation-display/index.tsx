@@ -6,6 +6,7 @@ import type { AnsweredSelection } from "./hooks/use-segment-selection";
 
 import { useCallback, useMemo } from "react";
 
+import { ErrorBoundary } from "@/components/ui";
 import { useAnnotationState, useSegmentSelection, useAnnotationApi, useMinimumTime } from "./hooks";
 import { PracticePhase, TransitionPhase, AnnotationPhase } from "./components";
 import { splitIntoSegments } from "./utils/segment-utils";
@@ -314,11 +315,13 @@ export const AnnotationDisplay = ({
   // Show transition screen between practice and main phase
   if (phase === "transition") {
     return (
-      <TransitionPhase
-        brandColor={brandColor}
-        textsCount={texts.length}
-        onStartMain={handleStartMain}
-      />
+      <ErrorBoundary>
+        <TransitionPhase
+          brandColor={brandColor}
+          textsCount={texts.length}
+          onStartMain={handleStartMain}
+        />
+      </ErrorBoundary>
     );
   }
 
@@ -370,8 +373,16 @@ export const AnnotationDisplay = ({
   };
 
   if (phase === "practice") {
-    return <PracticePhase {...commonProps} phase={phase} />;
+    return (
+      <ErrorBoundary>
+        <PracticePhase {...commonProps} phase={phase} />
+      </ErrorBoundary>
+    );
   }
 
-  return <AnnotationPhase {...commonProps} />;
+  return (
+    <ErrorBoundary>
+      <AnnotationPhase {...commonProps} />
+    </ErrorBoundary>
+  );
 };

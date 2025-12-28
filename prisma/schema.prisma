@@ -301,6 +301,37 @@ model AnnotationSession {
   @@map("annotation_sessions")
 }
 
+// ============================================================================
+// CLIENT ERROR TELEMETRY
+// ============================================================================
+
+// Stores client-side errors for debugging and monitoring
+model ClientError {
+  id        String   @id @default(cuid())
+
+  // Error details
+  errorName    String?
+  errorMessage String
+  errorStack   String?  // Full stack trace
+  componentStack String? // React component stack
+
+  // Context
+  url          String   // URL where error occurred
+  userAgent    String?  // Browser/device info
+  formId       String?  // Associated form if applicable
+  sessionToken String?  // Annotation session token if applicable
+
+  // Metadata
+  timestamp    DateTime @default(now())
+  resolved     Boolean  @default(false)
+  notes        String?  // Admin notes about the error
+
+  @@index([formId])
+  @@index([timestamp])
+  @@index([resolved])
+  @@map("client_errors")
+}
+
 // Individual annotation record
 model ArticleAnnotation {
   id        String @id @default(cuid())
