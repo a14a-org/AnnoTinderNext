@@ -12,7 +12,7 @@ import { AlertCircle, Check, ChevronRight, Loader2 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 
 import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
-import { Button } from "@/components/ui";
+import { Button, ErrorBoundary } from "@/components/ui";
 import { apiPost } from "@/lib/api";
 import { letterToIndex } from "@/lib/keyboard-shortcuts";
 import { DEFAULT_BRAND_COLOR } from "@/config/theme";
@@ -343,33 +343,34 @@ const PublicFormPage = () => {
   const showKeyboardHint = !isActiveThankYou && !isSpecialScreen && !isSubmitted;
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
-      {showProgressBar && <ProgressBar progress={progress} brandColor={brandColor} />}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-canvas flex flex-col">
+        {showProgressBar && <ProgressBar progress={progress} brandColor={brandColor} />}
 
-      {showNavigation && (
-        <NavigationButtons
-          currentIndex={currentIndex}
-          isThankYou={isActiveThankYou}
-          canProceed={canProceedNow()}
-          isSubmitting={isSubmitting}
-          onPrevious={goPrevious}
-          onNext={goNext}
-        />
-      )}
+        {showNavigation && (
+          <NavigationButtons
+            currentIndex={currentIndex}
+            isThankYou={isActiveThankYou}
+            canProceed={canProceedNow()}
+            isSubmitting={isSubmitting}
+            onPrevious={goPrevious}
+            onNext={goNext}
+          />
+        )}
 
-      {showKeyboardHint && <KeyboardHint />}
+        {showKeyboardHint && <KeyboardHint />}
 
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeQuestion.id}
-            initial={{ opacity: 0, x: direction * 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * -50 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="w-full max-w-2xl"
-          >
-            {isWelcome && (
+        <main className="flex-1 flex items-center justify-center px-6 py-16">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeQuestion.id}
+              initial={{ opacity: 0, x: direction * 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -50 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="w-full max-w-2xl"
+            >
+              {isWelcome && (
               <div className="text-center">
                 <h1 className="text-4xl font-display font-bold text-obsidian mb-4">{activeQuestion.title}</h1>
                 {activeQuestion.description && <p className="text-lg text-obsidian-muted mb-8">{activeQuestion.description}</p>}
@@ -485,11 +486,12 @@ const PublicFormPage = () => {
                   </Button>
                 </div>
               </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-    </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 };
 
