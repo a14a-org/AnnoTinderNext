@@ -170,8 +170,11 @@ export const AnnotationDisplay = ({
           transitionToMain();
           resetSelection();
         } else {
-          await completeSession();
+          const redirectUrl = await completeSession();
           onComplete(newAnnotations);
+          if (redirectUrl) {
+            window.location.href = redirectUrl;
+          }
         }
       } else {
         resetSelection();
@@ -225,8 +228,11 @@ export const AnnotationDisplay = ({
         transitionToMain();
         resetSelection();
       } else {
-        await completeSession();
+        const redirectUrl = await completeSession();
         onComplete(newAnnotations);
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        }
       }
     } else {
       resetSelection();
@@ -283,8 +289,11 @@ export const AnnotationDisplay = ({
         transitionToMain();
         resetSelection();
       } else {
-        await completeSession();
+        const redirectUrl = await completeSession();
         onComplete(newAnnotations);
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+        }
       }
     } else {
       resetSelection();

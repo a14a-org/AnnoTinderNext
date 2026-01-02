@@ -4,6 +4,11 @@ import { useCallback } from "react";
 
 import { apiPost } from "@/lib/api";
 
+interface CompleteSessionResponse {
+  success: boolean;
+  returnUrl?: string | null;
+}
+
 export const useAnnotationApi = (
   sessionToken: string | undefined,
   formId: string | undefined
@@ -34,17 +39,21 @@ export const useAnnotationApi = (
     [sessionToken, formId]
   );
 
-  // Complete session via API
-  const completeSession = useCallback(async () => {
-    if (!sessionToken || !formId) return;
+  // Complete session via API - returns the redirect URL if configured
+  const completeSession = useCallback(async (): Promise<string | null> => {
+    if (!sessionToken || !formId) return null;
 
-    const { error } = await apiPost(`/api/forms/${formId}/session/complete`, {
-      sessionToken,
-    });
+    const { data, error } = await apiPost<CompleteSessionResponse>(
+      `/api/forms/${formId}/session/complete`,
+      { sessionToken }
+    );
 
     if (error) {
       console.error("Failed to complete session:", error);
+      return null;
     }
+
+    return data?.returnUrl ?? null;
   }, [sessionToken, formId]);
 
   return {
