@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "postinstall": "mkdir -p src/generated/prisma && prisma generate",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
