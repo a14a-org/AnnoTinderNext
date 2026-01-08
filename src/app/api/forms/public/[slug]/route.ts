@@ -50,6 +50,10 @@ export async function GET(
       articlesPerSession: form.articlesPerSession,
       quotaSettings: form.quotaSettings ? JSON.parse(form.quotaSettings) : null,
       sessionTimeoutMins: form.sessionTimeoutMins,
+      // Dynata settings (for redirect on decline/screenout)
+      dynataEnabled: form.dynataEnabled,
+      dynataReturnUrl: form.dynataReturnUrl,
+      dynataBasicCode: form.dynataBasicCode,
       questions: form.questions.map((q) => ({
         id: q.id,
         type: q.type,

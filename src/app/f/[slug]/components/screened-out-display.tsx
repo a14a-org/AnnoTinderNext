@@ -5,6 +5,7 @@ import { AlertCircle } from "lucide-react";
 interface ScreenedOutDisplayProps {
   reason: string | null;
   returnUrl: string | null;
+  willRedirect: boolean;
 }
 
 const getScreenedOutContent = (reason: string | null): { title: string; message: string } => {
@@ -35,8 +36,10 @@ const getScreenedOutContent = (reason: string | null): { title: string; message:
 export const ScreenedOutDisplay = ({
   reason,
   returnUrl,
+  willRedirect = false,
 }: ScreenedOutDisplayProps) => {
   const content = getScreenedOutContent(reason);
+  const showRedirectMessage = willRedirect || returnUrl;
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
@@ -49,7 +52,7 @@ export const ScreenedOutDisplay = ({
           <p className="text-obsidian-muted">
             {content.message}
           </p>
-          {returnUrl && (
+          {showRedirectMessage && (
             <p className="mt-4 text-sm text-gray-500">
               Je wordt zo doorgestuurd...
             </p>

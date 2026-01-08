@@ -218,11 +218,13 @@ export const InformedConsentDisplay = ({
 interface ConsentDeclinedDisplayProps {
   settings: InformedConsentSettings | null
   brandColor: string
+  willRedirect: boolean
 }
 
 export const ConsentDeclinedDisplay = ({
   settings: rawSettings,
   brandColor,
+  willRedirect = false,
 }: ConsentDeclinedDisplayProps) => {
   const settings = rawSettings ?? DEFAULT_CONSENT_SETTINGS
 
@@ -240,7 +242,9 @@ export const ConsentDeclinedDisplay = ({
       <p className="text-lg text-obsidian-muted mb-8">
         {settings.declineMessage ?? DEFAULT_CONSENT_SETTINGS.declineMessage}
       </p>
-      <p className="text-sm text-obsidian-muted">U kunt dit venster nu sluiten.</p>
+      <p className="text-sm text-obsidian-muted">
+        {willRedirect ? 'Je wordt zo doorgestuurd...' : 'U kunt dit venster nu sluiten.'}
+      </p>
     </div>
   )
 }

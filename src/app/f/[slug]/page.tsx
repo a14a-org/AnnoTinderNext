@@ -14,6 +14,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button, ErrorBoundary } from "@/components/ui";
 import { apiPost } from "@/lib/api";
+import { buildDynataRedirect } from "@/lib/dynata";
 import { letterToIndex } from "@/lib/keyboard-shortcuts";
 import { DEFAULT_BRAND_COLOR } from "@/config/theme";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS, DemographicsDisplay } from "@/features/demographics";
@@ -107,7 +108,21 @@ const PublicFormPage = () => {
     if (!activeQuestion) return;
     setAnswer(activeQuestion.id, false);
     setConsentDeclined(true);
-  }, [activeQuestion, setAnswer]);
+
+    // Redirect to Dynata with screenout status (rst=2) if enabled
+    if (form?.dynataEnabled && form?.dynataReturnUrl) {
+      const redirectUrl = buildDynataRedirect(
+        form.dynataReturnUrl,
+        externalPid,
+        "screenout",
+        form.dynataBasicCode
+      );
+      // Small delay to show the decline message before redirecting
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 2000);
+    }
+  }, [activeQuestion, setAnswer, form, externalPid]);
 
   // Demographics handler
   const handleDemographicsComplete = useCallback(async (demographicAnswers: DemographicAnswers) => {
@@ -145,7 +160,19 @@ const PublicFormPage = () => {
       if (assignResult.status === 409) {
         setScreenedOut(true);
         setScreenOutReason(assignResult.error || "quota_full");
-        if (returnUrl) {
+        // Redirect to Dynata with quota_full status (rst=3) if enabled
+        if (form.dynataEnabled && form.dynataReturnUrl) {
+          const redirectUrl = buildDynataRedirect(
+            form.dynataReturnUrl,
+            externalPid,
+            "quota_full",
+            form.dynataBasicCode
+          );
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 2000);
+        } else if (returnUrl) {
+          // Fallback to legacy returnUrl handling
           const redirectUrl = new URL(returnUrl);
           redirectUrl.searchParams.set("status", "quota_full");
           if (externalPid) redirectUrl.searchParams.set("pid", externalPid);
@@ -322,12 +349,14 @@ const PublicFormPage = () => {
 
   if (consentDeclined) {
     const consentQuestion = form.questions.find((q) => q.type === "INFORMED_CONSENT");
+    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl);
     return (
       <div className="min-h-screen bg-canvas flex flex-col">
         <main className="flex-1 flex items-center justify-center px-6 py-16">
           <ConsentDeclinedDisplay
             settings={consentQuestion?.settings as InformedConsentSettings | null}
             brandColor={brandColor}
+            willRedirect={willRedirect}
           />
         </main>
       </div>
@@ -335,7 +364,8 @@ const PublicFormPage = () => {
   }
 
   if (screenedOut) {
-    return <ScreenedOutDisplay reason={screenOutReason} returnUrl={returnUrl} />;
+    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl) || !!returnUrl;
+    return <ScreenedOutDisplay reason={screenOutReason} returnUrl={returnUrl} willRedirect={willRedirect} />;
   }
 
   const showProgressBar = form.showProgressBar && !isWelcome && !isActiveThankYou && !isSpecialScreen;

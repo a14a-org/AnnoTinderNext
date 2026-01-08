@@ -6,7 +6,7 @@ import { apiPost } from "@/lib/api";
 
 interface CompleteSessionResponse {
   success: boolean;
-  returnUrl?: string | null;
+  returnUrl: string | null;
 }
 
 export const useAnnotationApi = (
