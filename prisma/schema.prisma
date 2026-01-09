@@ -286,7 +286,7 @@ model AnnotationSession {
   articlesCompleted  Int     @default(0)
 
   // Status tracking
-  status      String   @default("started") // started | demographics | annotating | completed | screened_out | expired
+  status      String   @default("started") // started | consent_declined | demographics | annotating | completed | screened_out | expired
   lastActiveAt DateTime @default(now())
   startedAt   DateTime @default(now())
   completedAt DateTime?

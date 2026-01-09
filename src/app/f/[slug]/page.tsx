@@ -104,13 +104,30 @@ const PublicFormPage = () => {
     navigateTo(currentIndex + 1, 1);
   }, [activeQuestion, currentIndex, navigateTo, setAnswer]);
 
-  const handleConsentDecline = useCallback(() => {
-    if (!activeQuestion) return;
+  const handleConsentDecline = useCallback(async () => {
+    if (!activeQuestion || !form) return;
     setAnswer(activeQuestion.id, false);
     setConsentDeclined(true);
 
-    // Redirect to Dynata with screenout status (rst=2) if enabled
-    if (form?.dynataEnabled && form?.dynataReturnUrl) {
+    // Call decline endpoint to record consent_declined status in database
+    if (session?.sessionToken) {
+      const declineResult = await apiPost<{ success: boolean; redirectUrl: string | null }>(
+        `/api/forms/${form.id}/session/decline`,
+        { sessionToken: session.sessionToken }
+      );
+
+      if (declineResult.ok && declineResult.data?.redirectUrl) {
+        // Small delay to show the decline message before redirecting
+        setTimeout(() => {
+          window.location.href = declineResult.data!.redirectUrl!;
+        }, 2000);
+        return;
+      }
+    }
+
+    // Fallback: Redirect to Dynata with screenout status (rst=2) if enabled
+    // This handles cases where session wasn't created yet
+    if (form.dynataEnabled && form.dynataReturnUrl) {
       const redirectUrl = buildDynataRedirect(
         form.dynataReturnUrl,
         externalPid,
@@ -122,7 +139,7 @@ const PublicFormPage = () => {
         window.location.href = redirectUrl;
       }, 2000);
     }
-  }, [activeQuestion, setAnswer, form, externalPid]);
+  }, [activeQuestion, setAnswer, form, externalPid, session]);
 
   // Demographics handler
   const handleDemographicsComplete = useCallback(async (demographicAnswers: DemographicAnswers) => {
@@ -131,29 +148,33 @@ const PublicFormPage = () => {
 
     setAnswer(activeQuestion.id, JSON.stringify(demographicAnswers));
 
-    // Create session
-    const sessionResult = await apiPost<{ session: SessionData }>(
-      `/api/forms/${form.id}/session${isPreview ? "?preview=true" : ""}`,
-      { externalPid, returnUrl }
-    );
+    // Use existing session if available (created early for consent tracking)
+    // Otherwise create a new session (for forms without consent question)
+    let currentSession = session;
+    if (!currentSession) {
+      const sessionResult = await apiPost<{ session: SessionData }>(
+        `/api/forms/${form.id}/session${isPreview ? "?preview=true" : ""}`,
+        { externalPid, returnUrl }
+      );
 
-    if (!sessionResult.ok) {
-      setError(sessionResult.error || "Failed to create session");
-      setIsProcessingDemographics(false);
-      return;
-    }
+      if (!sessionResult.ok) {
+        setError(sessionResult.error || "Failed to create session");
+        setIsProcessingDemographics(false);
+        return;
+      }
 
-    const sessionData = sessionResult.data;
-    setSession(sessionData.session);
+      currentSession = sessionResult.data.session;
+      setSession(currentSession);
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem(`session_${slug}`, sessionData.session.sessionToken);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`session_${slug}`, currentSession.sessionToken);
+      }
     }
 
     // Assign articles
     const assignResult = await apiPost<{ articles: AssignedArticle[]; session: SessionData }>(
       `/api/forms/${form.id}/session/assign${isPreview ? "?preview=true" : ""}`,
-      { sessionToken: sessionData.session.sessionToken, demographics: demographicAnswers }
+      { sessionToken: currentSession.sessionToken, demographics: demographicAnswers }
     );
 
     if (!assignResult.ok) {
@@ -190,7 +211,7 @@ const PublicFormPage = () => {
     setSession(assignResult.data.session);
     navigateTo(currentIndex + 1, 1);
     setIsProcessingDemographics(false);
-  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview]);
+  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview, session]);
 
   // Instructions handler
   const handleInstructionsContinue = useCallback(() => {
@@ -264,6 +285,49 @@ const PublicFormPage = () => {
       navigateTo(currentIndex + 1, 1);
     }
   }, [form, currentIndex, answers, startedAt, slug, canProceedNow, isSubmitted, session, navigateTo, isPreview]);
+
+  // Create session early when form loads (for tracking consent declines)
+  useEffect(() => {
+    const createEarlySession = async () => {
+      if (!form || session || isPreview) return;
+
+      // Only create early session if form has informed consent question
+      const hasConsentQuestion = form.questions.some(q => q.type === "INFORMED_CONSENT");
+      if (!hasConsentQuestion) return;
+
+      // Check if we already have a session token stored
+      const storedToken = typeof window !== "undefined"
+        ? localStorage.getItem(`session_${slug}`)
+        : null;
+
+      if (storedToken) {
+        // Try to resume existing session
+        const resumeResult = await apiPost<{ session: SessionData }>(
+          `/api/forms/${form.id}/session`,
+          { sessionToken: storedToken, externalPid, returnUrl }
+        );
+        if (resumeResult.ok && resumeResult.data?.session) {
+          setSession(resumeResult.data.session);
+          return;
+        }
+      }
+
+      // Create new session
+      const result = await apiPost<{ session: SessionData }>(
+        `/api/forms/${form.id}/session`,
+        { externalPid, returnUrl }
+      );
+
+      if (result.ok && result.data?.session) {
+        setSession(result.data.session);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`session_${slug}`, result.data.session.sessionToken);
+        }
+      }
+    };
+
+    createEarlySession();
+  }, [form, session, slug, externalPid, returnUrl, isPreview]);
 
   // Focus input when question changes
   useEffect(() => {
