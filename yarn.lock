@@ -1257,18 +1257,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@prisma/client-runtime-utils@npm:7.2.0":
-  version: 7.2.0
-  resolution: "@prisma/client-runtime-utils@npm:7.2.0"
-  checksum: 10c0/2d28cd04f3e8ef156d27bfc405d85603f9f4c604a54c935a9bbb8ace322c47f795223d168945e5f76ec1978dcdba10d2cef29853e91a93735fc654c69dd5deb4
+"@prisma/client-runtime-utils@npm:7.3.0":
+  version: 7.3.0
+  resolution: "@prisma/client-runtime-utils@npm:7.3.0"
+  checksum: 10c0/7a1ce7154799efd84c887d5091088b57c1a3733f8686ed5308157f8ee35c4571ed6a16947bb45a1428f4eeb68f535ad48a9b106403f0a587464d1e44c8501a37
   languageName: node
   linkType: hard
 
-"@prisma/client@npm:^7.2.0":
-  version: 7.2.0
-  resolution: "@prisma/client@npm:7.2.0"
+"@prisma/client@npm:^7.3.0":
+  version: 7.3.0
+  resolution: "@prisma/client@npm:7.3.0"
   dependencies:
-    "@prisma/client-runtime-utils": "npm:7.2.0"
+    "@prisma/client-runtime-utils": "npm:7.3.0"
   peerDependencies:
     prisma: "*"
     typescript: ">=5.4.0"
@@ -1277,7 +1277,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/3c790af2bbfbbcdcaae0f0a8d33b17e8945daa0f731007d85d95ec1c726c7f8a8ed617802e39bde905613d302eaa8eaac804ab9bce5efc4ed174d9985cdf942a
+  checksum: 10c0/375f7a87a43dbf2a2afa3df50c3121edae7e46845faabab707f2c702aad281811682b81cd4a9bfdfb2dcafddaec3e48b1054c55f3813c10db61cb7e80091c612
   languageName: node
   linkType: hard
 
@@ -2444,7 +2444,7 @@ __metadata:
   resolution: "annotindernext@workspace:."
   dependencies:
     "@auth/prisma-adapter": "npm:^2.11.1"
-    "@prisma/client": "npm:^7.2.0"
+    "@prisma/client": "npm:^7.3.0"
     "@tailwindcss/postcss": "npm:^4"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/jest-dom": "npm:^6.9.1"
