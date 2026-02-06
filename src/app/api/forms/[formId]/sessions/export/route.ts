@@ -153,7 +153,9 @@ export async function GET(
 
       const header = [
         "coder id",
+        "panel source",
         "dynata id/psid",
+        "external param 2",
         "job set id",
         "article 1 id", "article 1 progress (y/n)",
         "article 2 id", "article 2 progress (y/n)",
@@ -165,7 +167,9 @@ export async function GET(
       for (const session of sessions) {
         const rowData: (string | number)[] = [
           session.id, // Coder ID
-          session.externalPid || "", // Dynata ID
+          session.panelSource || "", // Panel source
+          session.externalPid || "", // Dynata ID / external PID
+          session.externalParam2 || "", // External param 2 (Motivaction k)
           session.jobSet?.shortId || "", // Job Set ID
         ];
 
@@ -221,7 +225,9 @@ export async function GET(
       const csvRows = [];
       csvRows.push([
         "coder id",
+        "panel source",
         "dynata id/psid",
+        "external param 2",
         "job set id",
         "article id",
         "article short id",
@@ -239,7 +245,9 @@ export async function GET(
 
           const rowData: (string | number)[] = [
             session.id,
+            session.panelSource || "",
             session.externalPid || "",
+            session.externalParam2 || "",
             session.jobSet?.shortId || "",
             annotation.articleId,
             annotation.article?.shortId || "",
@@ -267,7 +275,9 @@ export async function GET(
     const exportData = sessions.map((session) => ({
       // Identifiers
       sessionId: session.id,
+      panelSource: session.panelSource,
       externalPid: session.externalPid,
+      externalParam2: session.externalParam2,
       sessionToken: session.sessionToken,
       jobSetId: session.jobSet?.id || null, // Include jobSetId
 
@@ -321,9 +331,11 @@ export async function GET(
       const csvRows = [
         // Header row
         [
+          "panelSource",
           "externalPid",
+          "externalParam2",
           "status",
-          "jobSetId", // Added to default CSV
+          "jobSetId",
           "gender",
           "ethnicity",
           "ageRange",
@@ -339,7 +351,9 @@ export async function GET(
         // Data rows
         ...exportData.map((row) =>
           [
+            row.panelSource || "",
             row.externalPid || "",
+            row.externalParam2 || "",
             row.status,
             row.jobSetId || "",
             row.demographics.gender || "",

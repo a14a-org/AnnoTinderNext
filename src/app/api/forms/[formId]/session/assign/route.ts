@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { logError } from "@/lib/logger";
-import { buildDynataRedirectFromForm } from "@/lib/dynata";
+import { buildPanelRedirectFromForm } from "@/lib/panel-redirect";
 import { isUnder18 } from "@/lib/age-validation";
 import {
   classifyParticipant,
@@ -126,6 +126,8 @@ export const POST = async (
         dynataEnabled: true,
         dynataReturnUrl: true,
         dynataBasicCode: true,
+        motivactionEnabled: true,
+        motivactionReturnUrl: true,
         assignmentStrategy: true,
       },
     });
@@ -157,7 +159,7 @@ export const POST = async (
           assigned: false,
           reason: "under_age",
           message: "Je moet minimaal 18 jaar oud zijn om deel te nemen aan dit onderzoek.",
-          returnUrl: buildDynataRedirectFromForm(form, session, "screenout"),
+          returnUrl: buildPanelRedirectFromForm(form, session, "screenout"),
         },
         { status: 409 }
       );
@@ -183,7 +185,7 @@ export const POST = async (
           assigned: false,
           reason: "no_matching_group",
           message: "Participant does not match any demographic group",
-          returnUrl: buildDynataRedirectFromForm(form, session, "screenout"),
+          returnUrl: buildPanelRedirectFromForm(form, session, "screenout"),
         },
         { status: 409 }
       );
@@ -231,7 +233,7 @@ export const POST = async (
             message: `No job sets available for ${demographicGroup} demographic`,
             availableCount: 0,
             required: articlesToRequire,
-            returnUrl: buildDynataRedirectFromForm(form, session, "quota_full"),
+            returnUrl: buildPanelRedirectFromForm(form, session, "quota_full"),
           },
           { status: 409 }
         );
@@ -284,7 +286,7 @@ export const POST = async (
             message: `Not enough articles available for ${demographicGroup} demographic`,
             availableCount: availableArticles.length,
             required: requiredArticles,
-            returnUrl: buildDynataRedirectFromForm(form, session, "quota_full"),
+            returnUrl: buildPanelRedirectFromForm(form, session, "quota_full"),
           },
           { status: 409 }
         );

@@ -19,7 +19,7 @@ export async function POST(
   try {
     const { formId } = await params;
     const body = await request.json();
-    const { sessionToken, externalPid, returnUrl } = body;
+    const { sessionToken, externalPid, externalParam2, returnUrl, panelSource } = body;
 
     // Get form with settings
     const form = await db.form.findUnique({
@@ -97,7 +97,9 @@ export async function POST(
       data: {
         formId,
         externalPid,
+        externalParam2,
         returnUrl,
+        panelSource,
         articlesRequired: form.articlesPerSession,
         status: "started",
       },

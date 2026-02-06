@@ -18,6 +18,8 @@ interface SettingsPanelProps {
   dynataEnabled: boolean;
   dynataReturnUrl: string;
   dynataBasicCode: string;
+  motivactionEnabled: boolean;
+  motivactionReturnUrl: string;
   assignmentStrategy: "INDIVIDUAL" | "JOB_SET";
   onDescriptionChange: (value: string) => void;
   onBrandColorChange: (value: string) => void;
@@ -27,6 +29,8 @@ interface SettingsPanelProps {
   onDynataEnabledChange: (enabled: boolean) => void;
   onDynataReturnUrlChange: (url: string) => void;
   onDynataBasicCodeChange: (code: string) => void;
+  onMotivactionEnabledChange: (enabled: boolean) => void;
+  onMotivactionReturnUrlChange: (url: string) => void;
   onAssignmentStrategyChange: (strategy: "INDIVIDUAL" | "JOB_SET") => void;
   onImport: () => void;
 }
@@ -42,6 +46,8 @@ export const SettingsPanel = ({
   dynataEnabled,
   dynataReturnUrl,
   dynataBasicCode,
+  motivactionEnabled,
+  motivactionReturnUrl,
   assignmentStrategy,
   onDescriptionChange,
   onBrandColorChange,
@@ -51,6 +57,8 @@ export const SettingsPanel = ({
   onDynataEnabledChange,
   onDynataReturnUrlChange,
   onDynataBasicCodeChange,
+  onMotivactionEnabledChange,
+  onMotivactionReturnUrlChange,
   onAssignmentStrategyChange,
   onImport,
 }: SettingsPanelProps) => (
@@ -290,6 +298,64 @@ export const SettingsPanel = ({
               <li><span className="text-green-600">Complete:</span> ?rst=1&psid=xxx&basic=xxx</li>
               <li><span className="text-yellow-600">Screenout:</span> ?rst=2&psid=xxx&basic=xxx</li>
               <li><span className="text-red-600">Over Quota:</span> ?rst=3&psid=xxx&basic=xxx</li>
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* Motivaction (StemPunt) Panel Integration Section */}
+    <div className="border-t border-gray-100 pt-4">
+      <h4 className="font-medium text-obsidian mb-3 flex items-center gap-2">
+        <ExternalLink className="w-4 h-4" />
+        Panel Integration (Motivaction / StemPunt)
+      </h4>
+
+      <div className="flex items-center gap-3 mb-4">
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={motivactionEnabled}
+            onChange={(e) => onMotivactionEnabledChange(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-chili-coral/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-chili-coral"></div>
+        </label>
+        <span className="text-sm font-medium text-obsidian">Enable Motivaction Integration</span>
+      </div>
+
+      {motivactionEnabled && (
+        <div className="space-y-4 pl-4 border-l-2 border-chili-coral/20">
+          <div className="p-3 bg-blue-50 rounded-lg mb-4">
+            <p className="text-sm text-blue-800">
+              <strong>Entry URL for Motivaction:</strong>
+            </p>
+            <code className="text-xs bg-blue-100 px-2 py-1 rounded mt-1 block break-all">
+              {typeof window !== 'undefined' ? window.location.origin : ''}/f/{form?.slug}?d={"{{d}}"}&k={"{{k}}"}
+            </code>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-obsidian mb-1">
+              Return URL Base
+            </label>
+            <Input
+              type="url"
+              value={motivactionReturnUrl}
+              onChange={(e) => onMotivactionReturnUrlChange(e.target.value)}
+              placeholder="https://www.stempunt.nu/s.asp"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Base URL for redirecting participants back to StemPunt
+            </p>
+          </div>
+
+          <div className="p-3 bg-gray-50 rounded-lg text-sm text-obsidian-muted">
+            <p className="font-medium mb-2">Redirect URLs (auto-generated):</p>
+            <ul className="space-y-1 text-xs">
+              <li><span className="text-green-600">Complete:</span> ?d=xx&k=yy&extid=01&q=return</li>
+              <li><span className="text-yellow-600">Screenout:</span> ?d=xx&k=yy&extid=02&q=return</li>
+              <li><span className="text-red-600">Over Quota:</span> ?d=xx&k=yy&extid=03&q=return</li>
             </ul>
           </div>
         </div>

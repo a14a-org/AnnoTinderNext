@@ -27,10 +27,14 @@ const FormEditorPage = () => {
   const {
     form, isLoading, title, description, brandColor, isPublished,
     articlesPerSession, sessionTimeoutMins, quotaSettings,
-    dynataEnabled, dynataReturnUrl, dynataBasicCode, assignmentStrategy, saveStatus,
+    dynataEnabled, dynataReturnUrl, dynataBasicCode,
+    motivactionEnabled, motivactionReturnUrl,
+    assignmentStrategy, saveStatus,
     setTitle, setDescription, setBrandColor,
     setArticlesPerSession, setSessionTimeoutMins, setQuotaSettings,
-    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode, setAssignmentStrategy,
+    setDynataEnabled, setDynataReturnUrl, setDynataBasicCode,
+    setMotivactionEnabled, setMotivactionReturnUrl,
+    setAssignmentStrategy,
     setForm, fetchForm, togglePublish, setIsPublished,
   } = useFormEditor(formId);
 
@@ -209,6 +213,8 @@ const FormEditorPage = () => {
             dynataEnabled={dynataEnabled}
             dynataReturnUrl={dynataReturnUrl}
             dynataBasicCode={dynataBasicCode}
+            motivactionEnabled={motivactionEnabled}
+            motivactionReturnUrl={motivactionReturnUrl}
             assignmentStrategy={assignmentStrategy}
             onDescriptionChange={setDescription}
             onBrandColorChange={setBrandColor}
@@ -218,6 +224,8 @@ const FormEditorPage = () => {
             onDynataEnabledChange={setDynataEnabled}
             onDynataReturnUrlChange={setDynataReturnUrl}
             onDynataBasicCodeChange={setDynataBasicCode}
+            onMotivactionEnabledChange={setMotivactionEnabled}
+            onMotivactionReturnUrlChange={setMotivactionReturnUrl}
             onAssignmentStrategyChange={setAssignmentStrategy}
             onImport={fetchForm}
           />

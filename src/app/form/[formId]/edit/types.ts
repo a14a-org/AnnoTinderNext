@@ -49,6 +49,8 @@ export interface Form {
   dynataEnabled: boolean;
   dynataReturnUrl: string | null;
   dynataBasicCode: string | null;
+  motivactionEnabled: boolean;
+  motivactionReturnUrl: string | null;
   assignmentStrategy: "INDIVIDUAL" | "JOB_SET";
   questions: Question[];
   _count: {

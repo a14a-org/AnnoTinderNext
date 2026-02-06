@@ -34,10 +34,12 @@ export interface FormData {
     groups: Record<string, { values: string[]; target: number }>;
   } | null;
   sessionTimeoutMins: number;
-  // Dynata integration
+  // Panel integrations
   dynataEnabled: boolean;
   dynataReturnUrl: string | null;
   dynataBasicCode: string | null;
+  motivactionEnabled: boolean;
+  motivactionReturnUrl: string | null;
   questions: Question[];
 }
 

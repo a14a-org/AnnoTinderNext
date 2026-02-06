@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
           dynataEnabled: importData.form.dynataEnabled,
           dynataReturnUrl: importData.form.dynataReturnUrl,
           dynataBasicCode: importData.form.dynataBasicCode,
+          motivactionEnabled: importData.form.motivactionEnabled,
+          motivactionReturnUrl: importData.form.motivactionReturnUrl,
           isPublished: false, // Always start as draft
         },
       });

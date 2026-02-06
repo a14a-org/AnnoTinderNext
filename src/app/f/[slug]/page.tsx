@@ -15,6 +15,7 @@ import { AnnotationDisplay } from "@/components/molecules/AnnotationDisplay";
 import { Button, ErrorBoundary } from "@/components/ui";
 import { apiPost } from "@/lib/api";
 import { buildDynataRedirect } from "@/lib/dynata";
+import { buildMotivactionRedirect } from "@/lib/motivaction";
 import { letterToIndex } from "@/lib/keyboard-shortcuts";
 import { DEFAULT_BRAND_COLOR } from "@/config/theme";
 import { DEFAULT_DEMOGRAPHICS_SETTINGS, DemographicsDisplay } from "@/features/demographics";
@@ -42,7 +43,7 @@ const PublicFormPage = () => {
 
   // Custom hooks for form management
   const { form, isLoading, error: loadError } = useFormData(slug);
-  const { externalPid, returnUrl } = useUrlParams();
+  const { panelSource, externalPid, externalParam2, returnUrl } = useUrlParams();
   const { answers, setAnswer, setAnswers, canProceed } = useFormAnswers();
 
   const maxIndex = form ? form.questions.length - 1 : 0;
@@ -125,21 +126,26 @@ const PublicFormPage = () => {
       }
     }
 
-    // Fallback: Redirect to Dynata with screenout status (rst=2) if enabled
+    // Fallback: Redirect to panel with screenout status if enabled
     // This handles cases where session wasn't created yet
-    if (form.dynataEnabled && form.dynataReturnUrl) {
+    if (panelSource === "motivaction" && form.motivactionEnabled && form.motivactionReturnUrl) {
+      const redirectUrl = buildMotivactionRedirect(
+        form.motivactionReturnUrl,
+        externalPid,
+        externalParam2,
+        "screenout"
+      );
+      setTimeout(() => { window.location.href = redirectUrl; }, 2000);
+    } else if (form.dynataEnabled && form.dynataReturnUrl) {
       const redirectUrl = buildDynataRedirect(
         form.dynataReturnUrl,
         externalPid,
         "screenout",
         form.dynataBasicCode
       );
-      // Small delay to show the decline message before redirecting
-      setTimeout(() => {
-        window.location.href = redirectUrl;
-      }, 2000);
+      setTimeout(() => { window.location.href = redirectUrl; }, 2000);
     }
-  }, [activeQuestion, setAnswer, form, externalPid, session]);
+  }, [activeQuestion, setAnswer, form, panelSource, externalPid, externalParam2, session]);
 
   // Demographics handler
   const handleDemographicsComplete = useCallback(async (demographicAnswers: DemographicAnswers) => {
@@ -154,7 +160,7 @@ const PublicFormPage = () => {
     if (!currentSession) {
       const sessionResult = await apiPost<{ session: SessionData }>(
         `/api/forms/${form.id}/session${isPreview ? "?preview=true" : ""}`,
-        { externalPid, returnUrl }
+        { externalPid, externalParam2, returnUrl, panelSource }
       );
 
       if (!sessionResult.ok) {
@@ -181,17 +187,23 @@ const PublicFormPage = () => {
       if (assignResult.status === 409) {
         setScreenedOut(true);
         setScreenOutReason(assignResult.error || "quota_full");
-        // Redirect to Dynata with quota_full status (rst=3) if enabled
-        if (form.dynataEnabled && form.dynataReturnUrl) {
+        // Redirect to panel with quota_full status if enabled
+        if (panelSource === "motivaction" && form.motivactionEnabled && form.motivactionReturnUrl) {
+          const redirectUrl = buildMotivactionRedirect(
+            form.motivactionReturnUrl,
+            externalPid,
+            externalParam2,
+            "quota_full"
+          );
+          setTimeout(() => { window.location.href = redirectUrl; }, 2000);
+        } else if (form.dynataEnabled && form.dynataReturnUrl) {
           const redirectUrl = buildDynataRedirect(
             form.dynataReturnUrl,
             externalPid,
             "quota_full",
             form.dynataBasicCode
           );
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 2000);
+          setTimeout(() => { window.location.href = redirectUrl; }, 2000);
         } else if (returnUrl) {
           // Fallback to legacy returnUrl handling
           const redirectUrl = new URL(returnUrl);
@@ -211,7 +223,7 @@ const PublicFormPage = () => {
     setSession(assignResult.data.session);
     navigateTo(currentIndex + 1, 1);
     setIsProcessingDemographics(false);
-  }, [activeQuestion, form, externalPid, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview, session]);
+  }, [activeQuestion, form, panelSource, externalPid, externalParam2, returnUrl, slug, isProcessingDemographics, currentIndex, navigateTo, setAnswer, isPreview, session]);
 
   // Instructions handler
   const handleInstructionsContinue = useCallback(() => {
@@ -304,7 +316,7 @@ const PublicFormPage = () => {
         // Try to resume existing session
         const resumeResult = await apiPost<{ session: SessionData }>(
           `/api/forms/${form.id}/session`,
-          { sessionToken: storedToken, externalPid, returnUrl }
+          { sessionToken: storedToken, externalPid, externalParam2, returnUrl, panelSource }
         );
         if (resumeResult.ok && resumeResult.data?.session) {
           setSession(resumeResult.data.session);
@@ -315,7 +327,7 @@ const PublicFormPage = () => {
       // Create new session
       const result = await apiPost<{ session: SessionData }>(
         `/api/forms/${form.id}/session`,
-        { externalPid, returnUrl }
+        { externalPid, externalParam2, returnUrl, panelSource }
       );
 
       if (result.ok && result.data?.session) {
@@ -327,7 +339,7 @@ const PublicFormPage = () => {
     };
 
     createEarlySession();
-  }, [form, session, slug, externalPid, returnUrl, isPreview]);
+  }, [form, session, slug, panelSource, externalPid, externalParam2, returnUrl, isPreview]);
 
   // Focus input when question changes
   useEffect(() => {
@@ -413,7 +425,8 @@ const PublicFormPage = () => {
 
   if (consentDeclined) {
     const consentQuestion = form.questions.find((q) => q.type === "INFORMED_CONSENT");
-    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl);
+    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl) ||
+      !!(form?.motivactionEnabled && form?.motivactionReturnUrl);
     return (
       <div className="min-h-screen bg-canvas flex flex-col">
         <main className="flex-1 flex items-center justify-center px-6 py-16">
@@ -428,7 +441,8 @@ const PublicFormPage = () => {
   }
 
   if (screenedOut) {
-    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl) || !!returnUrl;
+    const willRedirect = !!(form?.dynataEnabled && form?.dynataReturnUrl) ||
+      !!(form?.motivactionEnabled && form?.motivactionReturnUrl) || !!returnUrl;
     return <ScreenedOutDisplay reason={screenOutReason} returnUrl={returnUrl} willRedirect={willRedirect} />;
   }
 

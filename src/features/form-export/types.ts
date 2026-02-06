@@ -48,6 +48,8 @@ export interface ExportedFormSettings {
   dynataEnabled: boolean;
   dynataReturnUrl: string | null;
   dynataBasicCode: string | null;
+  motivactionEnabled: boolean;
+  motivactionReturnUrl: string | null;
 }
 
 export interface FormExportData {

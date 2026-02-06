@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { logError } from "@/lib/logger";
-import { buildDynataRedirectFromForm } from "@/lib/dynata";
+import { buildPanelRedirectFromForm } from "@/lib/panel-redirect";
 import { parseQuotaCounts } from "@/features/quota";
 
 /**
@@ -61,6 +61,8 @@ export async function POST(
         dynataEnabled: true,
         dynataReturnUrl: true,
         dynataBasicCode: true,
+        motivactionEnabled: true,
+        motivactionReturnUrl: true,
         assignmentStrategy: true,
       },
     });
@@ -74,7 +76,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         alreadyCompleted: true,
-        returnUrl: buildDynataRedirectFromForm(form, session, "complete"),
+        returnUrl: buildPanelRedirectFromForm(form, session, "complete"),
       });
     }
 
@@ -164,7 +166,7 @@ export async function POST(
     });
 
     // Build Dynata redirect URL
-    const returnUrl = buildDynataRedirectFromForm(form, session, "complete");
+    const returnUrl = buildPanelRedirectFromForm(form, session, "complete");
 
     return NextResponse.json({
       success: true,

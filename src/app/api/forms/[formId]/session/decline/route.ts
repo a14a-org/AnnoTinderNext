@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { buildDynataRedirect } from "@/lib/dynata";
 import { logError } from "@/lib/logger";
+import { buildPanelRedirectFromForm } from "@/lib/panel-redirect";
 
 /**
  * POST - Mark session as consent_declined and return redirect URL
@@ -42,6 +42,8 @@ export async function POST(
             dynataEnabled: true,
             dynataReturnUrl: true,
             dynataBasicCode: true,
+            motivactionEnabled: true,
+            motivactionReturnUrl: true,
           },
         },
       },
@@ -63,16 +65,8 @@ export async function POST(
       },
     });
 
-    // Build redirect URL if Dynata is enabled
-    let redirectUrl: string | null = null;
-    if (session.form.dynataEnabled && session.form.dynataReturnUrl) {
-      redirectUrl = buildDynataRedirect(
-        session.form.dynataReturnUrl,
-        session.externalPid,
-        "screenout",
-        session.form.dynataBasicCode
-      );
-    }
+    // Build redirect URL for panel provider
+    const redirectUrl = buildPanelRedirectFromForm(session.form, session, "screenout");
 
     return NextResponse.json({
       success: true,

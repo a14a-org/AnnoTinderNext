@@ -60,6 +60,7 @@ export const DEFAULT_DEMOGRAPHICS_SETTINGS: DemographicsSettings = {
         'Duits',
         'Pools',
         'Anders',
+        'Zeg ik liever niet',
       ],
       required: true,
     },

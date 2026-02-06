@@ -106,6 +106,10 @@ model Form {
   dynataReturnUrl String? // Base return URL: https://api.dynata.com/respondent/exit
   dynataBasicCode String? // Project-specific basic code from Dynata
 
+  // Motivaction (StemPunt) panel integration settings
+  motivactionEnabled   Boolean @default(false)
+  motivactionReturnUrl String? // Base return URL: https://www.stempunt.nu/s.asp
+
   questions   Question[]
   submissions FormSubmission[]
   articles    Article[]
@@ -261,9 +265,11 @@ model AnnotationSession {
   id     String @id @default(cuid())
   formId String
 
-  // External integration (Dynata)
-  externalPid String? // Participant ID from Dynata/panel provider
-  returnUrl   String? // Redirect URL for completion/screenout
+  // External panel integration
+  externalPid    String? // Participant ID (Dynata: psid, Motivaction: d value)
+  externalParam2 String? // Second identifier (Motivaction: k value)
+  returnUrl      String? // Redirect URL for completion/screenout
+  panelSource    String? // "dynata" | "motivaction" | null
 
   // Session token for persistence
   sessionToken String @unique @default(cuid())

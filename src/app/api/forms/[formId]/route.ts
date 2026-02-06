@@ -82,6 +82,9 @@ export async function PUT(
       dynataEnabled,
       dynataReturnUrl,
       dynataBasicCode,
+      // Motivaction settings
+      motivactionEnabled,
+      motivactionReturnUrl,
     } = body;
 
     // Handle quota settings - can be passed as object or string
@@ -112,6 +115,9 @@ export async function PUT(
         ...(dynataEnabled !== undefined && { dynataEnabled }),
         ...(dynataReturnUrl !== undefined && { dynataReturnUrl }),
         ...(dynataBasicCode !== undefined && { dynataBasicCode }),
+        // Motivaction settings
+        ...(motivactionEnabled !== undefined && { motivactionEnabled }),
+        ...(motivactionReturnUrl !== undefined && { motivactionReturnUrl }),
       },
       include: {
         questions: {

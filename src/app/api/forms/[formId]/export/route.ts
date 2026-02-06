@@ -127,6 +127,8 @@ export async function GET(
         dynataEnabled: form.dynataEnabled,
         dynataReturnUrl: form.dynataReturnUrl,
         dynataBasicCode: form.dynataBasicCode,
+        motivactionEnabled: form.motivactionEnabled,
+        motivactionReturnUrl: form.motivactionReturnUrl,
       },
       questions: exportedQuestions,
       articles: exportedArticles,
