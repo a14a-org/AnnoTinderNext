@@ -187,8 +187,12 @@ const PublicFormPage = () => {
       if (assignResult.status === 409) {
         setScreenedOut(true);
         setScreenOutReason(assignResult.error || "quota_full");
-        // Redirect to panel with quota_full status if enabled
-        if (panelSource === "motivaction" && form.motivactionEnabled && form.motivactionReturnUrl) {
+
+        // Use server-provided redirect URL (preferred — always fresh from DB)
+        const serverRedirectUrl = assignResult.errorData?.returnUrl as string | undefined;
+        if (serverRedirectUrl) {
+          setTimeout(() => { window.location.href = serverRedirectUrl; }, 2000);
+        } else if (panelSource === "motivaction" && form.motivactionEnabled && form.motivactionReturnUrl) {
           const redirectUrl = buildMotivactionRedirect(
             form.motivactionReturnUrl,
             externalPid,

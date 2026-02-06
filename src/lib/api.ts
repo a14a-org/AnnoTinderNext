@@ -1,6 +1,6 @@
 export type ApiResponse<T> =
-  | { ok: true; data: T; status: number; error: undefined }
-  | { ok: false; data: undefined; status: number; error: string };
+  | { ok: true; data: T; status: number; error: undefined; errorData: undefined }
+  | { ok: false; data: undefined; status: number; error: string; errorData: Record<string, unknown> | undefined };
 
 interface FetchOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
@@ -29,11 +29,12 @@ export const apiFetch = async <T>(
         data: undefined,
         status: res.status,
         error: errorData.error || errorData.reason || `Request failed with status ${res.status}`,
+        errorData,
       };
     }
 
     const data = await res.json();
-    return { ok: true, data, status: res.status, error: undefined };
+    return { ok: true, data, status: res.status, error: undefined, errorData: undefined };
   } catch (err) {
     console.error("API Error:", err);
     return {
@@ -41,6 +42,7 @@ export const apiFetch = async <T>(
       data: undefined,
       status: 0,
       error: err instanceof Error ? err.message : "Network error",
+      errorData: undefined,
     };
   }
 };
