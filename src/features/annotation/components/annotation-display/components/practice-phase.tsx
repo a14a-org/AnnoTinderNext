@@ -2,7 +2,7 @@ import type { TextAnnotationSettings, SelectionRange, MultiSelectMode } from "@/
 import type { Phase } from "../types";
 
 import { motion } from "framer-motion";
-import { Clock, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 import { TextDisplay } from "./text-display";
 import { FollowUpModal } from "./follow-up-modal";
@@ -85,6 +85,9 @@ export const PracticePhase = ({
   nothingFoundCount,
   maxNothingFoundPerSession,
 }: PracticePhaseProps) => {
+  const formatTimeLeft = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, "0")}`;
+
   // Determine button visibility based on mode and selection state
   const hasAnsweredSelections = answeredSelections.length > 0;
   const hasPendingSelections = pendingSelections.length > 0;
@@ -155,16 +158,6 @@ export const PracticePhase = ({
         </div>
       )}
 
-      {/* Timer Warning */}
-      {!isTimeCompleted && (
-        <div className="flex items-center justify-center gap-2 mb-4 text-sm text-orange-600 font-medium bg-orange-50 py-2 rounded-lg">
-          <Clock className="w-4 h-4" />
-          <span>
-            Lees nog {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")} voordat je verder kunt
-          </span>
-        </div>
-      )}
-
       {/* Text display with selectable segments */}
       <TextDisplay
         segments={segments}
@@ -188,7 +181,6 @@ export const PracticePhase = ({
         settings={settings}
         followUpAnswers={followUpAnswers}
         isSaving={isSaving}
-        isTimeCompleted={isTimeCompleted}
         onClearSelection={onClearSelection}
         onFollowUpSubmit={onFollowUpSubmit}
         setFollowUpAnswers={setFollowUpAnswers}
@@ -208,7 +200,7 @@ export const PracticePhase = ({
             className="w-full py-3 rounded-lg font-medium text-white transition-all cursor-pointer hover:brightness-110 active:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: brandColor }}
           >
-            {isSaving ? "Opslaan..." : "Klaar met dit artikel"}
+            {isSaving ? "Opslaan..." : !isTimeCompleted ? `Klaar met dit artikel (${formatTimeLeft(timeLeft)})` : "Klaar met dit artikel"}
           </button>
         )}
 
@@ -220,7 +212,7 @@ export const PracticePhase = ({
             className="w-full py-3 rounded-lg font-medium text-white transition-all cursor-pointer hover:brightness-110 active:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: brandColor }}
           >
-            Bevestig selecties ({pendingSelections.length})
+            {!isTimeCompleted ? `Bevestig selecties (${formatTimeLeft(timeLeft)})` : `Bevestig selecties (${pendingSelections.length})`}
           </button>
         )}
 
@@ -232,7 +224,7 @@ export const PracticePhase = ({
               disabled={isSaving || !isTimeCompleted}
               className="text-sm text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? "Opslaan..." : settings.nothingFoundButtonText || "Ik vind geen schadelijke zin in dit artikel"}
+              {isSaving ? "Opslaan..." : !isTimeCompleted ? `Lees het artikel (${formatTimeLeft(timeLeft)})` : (settings.nothingFoundButtonText || "Ik vind geen schadelijke zin in dit artikel")}
             </button>
             {remainingNothingFound !== Infinity && remainingNothingFound > 0 && (
               <p className="text-xs text-gray-400 mt-1">
