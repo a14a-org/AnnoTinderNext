@@ -243,6 +243,30 @@ export const splitIntoSentences = (text: string): string[] =>
     .filter((s) => s.length > 0)
 
 /**
+ * Split text into sentences while preserving paragraph boundaries.
+ * Splits on \n\n first (paragraphs), then sentences within each paragraph.
+ * Returns a flat segments array plus a set of indices that start new paragraphs.
+ */
+export const splitIntoSentencesWithParagraphs = (
+  text: string
+): { segments: string[]; paragraphBreakIndices: Set<number> } => {
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0)
+  const segments: string[] = []
+  const paragraphBreakIndices = new Set<number>()
+
+  for (const paragraph of paragraphs) {
+    const startIndex = segments.length
+    if (startIndex > 0) {
+      paragraphBreakIndices.add(startIndex)
+    }
+    const sentences = splitIntoSentences(paragraph.trim())
+    segments.push(...sentences)
+  }
+
+  return { segments, paragraphBreakIndices }
+}
+
+/**
  * Split text into words for word selection mode
  */
 export const splitIntoWords = (text: string): string[] =>

@@ -48,7 +48,7 @@ export const AnnotationDisplay = ({
   );
 
   // Split text based on selection mode
-  const segments = useMemo(() => {
+  const { segments, paragraphBreakIndices } = useMemo(() => {
     return splitIntoSegments(currentText, settings.selectionMode);
   }, [currentText, settings.selectionMode]);
 
@@ -342,6 +342,9 @@ export const AnnotationDisplay = ({
     );
   }
 
+  // Compute active segment index for scroll-to behavior
+  const activeSegmentIndex = showFollowUp && currentSelection ? currentSelection.segmentIndex : undefined;
+
   // Render practice or main annotation phase
   const commonProps = {
     currentIndex,
@@ -350,6 +353,8 @@ export const AnnotationDisplay = ({
     brandColor,
     settings,
     segments,
+    paragraphBreakIndices,
+    activeSegmentIndex,
     showFollowUp,
     followUpAnswers,
     isSaving,

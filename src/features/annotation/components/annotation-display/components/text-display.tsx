@@ -1,5 +1,6 @@
 import type { SelectionMode } from "@/features/annotation";
 
+import { useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface TextDisplayProps {
@@ -15,6 +16,10 @@ interface TextDisplayProps {
   isSegmentAnswered: (segmentIndex: number) => boolean;
   /** Whether user can add more selections */
   canAddMore: boolean;
+  /** Set of segment indices that start a new paragraph */
+  paragraphBreakIndices?: Set<number>;
+  /** Index of the active segment to scroll into view */
+  activeSegmentIndex?: number;
   /** @deprecated Use isSegmentSelected instead */
   selectedText?: string | null;
 }
@@ -29,7 +34,29 @@ export const TextDisplay = ({
   isSegmentSelected,
   isSegmentAnswered,
   canAddMore,
+  paragraphBreakIndices,
+  activeSegmentIndex,
 }: TextDisplayProps) => {
+  // Ref map for sentence spans
+  const segmentRefs = useRef<Map<number, HTMLSpanElement>>(new Map());
+
+  const setSegmentRef = useCallback((index: number, el: HTMLSpanElement | null) => {
+    if (el) {
+      segmentRefs.current.set(index, el);
+    } else {
+      segmentRefs.current.delete(index);
+    }
+  }, []);
+
+  // Scroll to active segment when follow-up modal appears
+  useEffect(() => {
+    if (activeSegmentIndex === undefined) return;
+    const el = segmentRefs.current.get(activeSegmentIndex);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [activeSegmentIndex]);
+
   const getSegmentStyle = (index: number) => {
     const isSelected = isSegmentSelected(index);
     const isAnswered = isSegmentAnswered(index);
@@ -108,20 +135,24 @@ export const TextDisplay = ({
             <div className="space-y-2">
               {segments.map((segment, index) => {
                 const isAnswered = isSegmentAnswered(index);
+                const isParagraphStart = paragraphBreakIndices?.has(index);
 
                 return (
-                  <span
-                    key={index}
-                    onClick={() => handleClick(segment, index)}
-                    className={`inline ${getSegmentClassName(index)} -mx-1`}
-                    style={getSegmentStyle(index)}
-                  >
-                    {isAnswered && (
-                      <span className="text-xs mr-1" title="Beantwoord">
-                        ✓
-                      </span>
-                    )}
-                    {segment}{" "}
+                  <span key={index}>
+                    {isParagraphStart && <span className="block mt-4" />}
+                    <span
+                      ref={(el) => setSegmentRef(index, el)}
+                      onClick={() => handleClick(segment, index)}
+                      className={`inline ${getSegmentClassName(index)} -mx-1`}
+                      style={getSegmentStyle(index)}
+                    >
+                      {isAnswered && (
+                        <span className="text-xs mr-1" title="Beantwoord">
+                          ✓
+                        </span>
+                      )}
+                      {segment}{" "}
+                    </span>
                   </span>
                 );
               })}
@@ -135,6 +166,7 @@ export const TextDisplay = ({
                 return (
                   <span
                     key={index}
+                    ref={(el) => setSegmentRef(index, el)}
                     onClick={() => handleClick(segment, index)}
                     className={getSegmentClassName(index)}
                     style={getSegmentStyle(index)}

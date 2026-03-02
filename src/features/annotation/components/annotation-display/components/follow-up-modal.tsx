@@ -1,6 +1,6 @@
 import type { FollowUpQuestion, TextAnnotationSettings, SelectionRange, MultiSelectMode } from "@/features/annotation";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface FollowUpModalProps {
@@ -41,6 +41,8 @@ export const FollowUpModal = ({
   currentSelection,
   pendingSelections,
 }: FollowUpModalProps) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
   // Get follow-up questions (with fallback from old single followUp format)
   const followUpQuestions: FollowUpQuestion[] = useMemo(() => {
     if (settings.followUpQuestions && settings.followUpQuestions.length > 0) {
@@ -115,6 +117,15 @@ export const FollowUpModal = ({
     return [];
   }, [multiSelectMode, currentSelection, pendingSelections]);
 
+  // Scroll modal into view after sentence scroll finishes
+  useEffect(() => {
+    if (!showFollowUp || selectedTexts.length === 0) return;
+    const timer = setTimeout(() => {
+      modalRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [showFollowUp, selectedTexts.length]);
+
   // Determine if we should show the modal
   const shouldShow = showFollowUp && selectedTexts.length > 0;
 
@@ -122,6 +133,7 @@ export const FollowUpModal = ({
     <AnimatePresence>
       {shouldShow && (
         <motion.div
+          ref={modalRef}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
