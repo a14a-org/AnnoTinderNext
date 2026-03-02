@@ -1,6 +1,7 @@
 export {
   parseCSVToTexts,
   splitIntoSentences,
+  splitIntoSentencesWithParagraphs,
   splitIntoWords,
   DEFAULT_ANNOTATION_SETTINGS,
 } from './text-annotation'

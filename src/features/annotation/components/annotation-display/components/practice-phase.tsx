@@ -16,6 +16,8 @@ interface PracticePhaseProps {
   brandColor: string;
   settings: TextAnnotationSettings;
   segments: string[];
+  paragraphBreakIndices: Set<number>;
+  activeSegmentIndex?: number;
   showFollowUp: boolean;
   followUpAnswers: Record<string, string | number | null>;
   isSaving: boolean;
@@ -55,6 +57,8 @@ export const PracticePhase = ({
   brandColor,
   settings,
   segments,
+  paragraphBreakIndices,
+  activeSegmentIndex,
   showFollowUp,
   followUpAnswers,
   isSaving,
@@ -172,6 +176,8 @@ export const PracticePhase = ({
         isSegmentSelected={isSegmentSelected}
         isSegmentAnswered={isSegmentAnswered}
         canAddMore={canAddMore}
+        paragraphBreakIndices={paragraphBreakIndices}
+        activeSegmentIndex={activeSegmentIndex}
       />
 
       {/* Follow-up questions panel */}
