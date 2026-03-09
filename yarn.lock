@@ -2520,7 +2520,7 @@ __metadata:
     tailwindcss: "npm:^4"
     typescript: "npm:5.9.3"
     vitest: "npm:^4.0.18"
-    zod: "npm:^4.3.5"
+    zod: "npm:^4.3.6"
   languageName: unknown
   linkType: soft
 
@@ -7335,14 +7335,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:4.2.1":
-  version: 4.2.1
-  resolution: "tailwindcss@npm:4.2.1"
-  checksum: 10c0/482d734b582e9da509042ff59c1d7564d99e39e238c50ae907c20fa56177a8a00c3902f6971329971bd6a1c5357026ac76a849b8f2c69c94f0f59be99530ba54
-  languageName: node
-  linkType: hard
-
-"tailwindcss@npm:^4":
+"tailwindcss@npm:4.2.1, tailwindcss@npm:^4":
   version: 4.2.1
   resolution: "tailwindcss@npm:4.2.1"
   checksum: 10c0/482d734b582e9da509042ff59c1d7564d99e39e238c50ae907c20fa56177a8a00c3902f6971329971bd6a1c5357026ac76a849b8f2c69c94f0f59be99530ba54
@@ -8141,10 +8134,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^4.3.5":
-  version: 4.3.5
-  resolution: "zod@npm:4.3.5"
-  checksum: 10c0/5a2db7e59177a3d7e202543f5136cb87b97b047b77c8a3d824098d3fa8b80d3aa40a0a5f296965c3b82dfdccdd05dbbfacce91347f16a39c675680fd7b1ab109
+"zod@npm:^4.3.6":
+  version: 4.3.6
+  resolution: "zod@npm:4.3.6"
+  checksum: 10c0/860d25a81ab41d33aa25f8d0d07b091a04acb426e605f396227a796e9e800c44723ed96d0f53a512b57be3d1520f45bf69c0cb3b378a232a00787a2609625307
   languageName: node
   linkType: hard
 
