@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 interface UseUrlParamsResult {
-  panelSource: "dynata" | "motivaction" | null;
+  panelSource: "dynata" | "motivaction" | "oz" | null;
   externalPid: string | null;
   externalParam2: string | null;
   returnUrl: string | null;
@@ -15,6 +15,12 @@ const getUrlParams = (): UseUrlParamsResult => {
   }
 
   const urlParams = new URLSearchParams(window.location.search);
+
+  // Check for generic source parameter (e.g., ?source=oz for OZ community)
+  const source = urlParams.get("source");
+  if (source === "oz") {
+    return { panelSource: "oz", externalPid: null, externalParam2: null, returnUrl: null };
+  }
 
   // Check for Motivaction first (d + k params)
   const dValue = urlParams.get("d");

@@ -310,7 +310,7 @@ export const FollowUpModal = ({
                 canSubmit && !isSaving ? brandColor : undefined,
             }}
           >
-            {getSubmitButtonText()}
+            {multiSelectMode === "per-selection" ? (isSaving ? "Opslaan..." : "Bevestigen") : getSubmitButtonText()}
           </button>
         </motion.div>
       )}
