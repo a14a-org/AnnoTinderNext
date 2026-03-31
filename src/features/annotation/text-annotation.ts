@@ -52,6 +52,7 @@ export interface TextItem {
   id: string
   text: string
   metadata: Record<string, string> | undefined
+  paragraphBreakIndices?: number[]
 }
 
 export type TextSource = 'manual' | 'database'
