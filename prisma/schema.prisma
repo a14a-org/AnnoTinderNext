@@ -240,6 +240,9 @@ model Article {
   shortId   String // ARTICLE_SHORT_ID from CSV (e.g., "f350ea2")
   text      String // The article text content
 
+  // Pre-computed paragraph break indices (JSON array of sentence indices, e.g., "[3, 7, 12]")
+  paragraphBreakIndices String?
+
   // Flexible quota tracking (JSON: { [groupName]: count })
   // NOTE: In JOB_SET mode, quotas are tracked on the JobSet, not here.
   quotaCounts String @default("{}")

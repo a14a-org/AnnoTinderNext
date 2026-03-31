@@ -547,7 +547,14 @@ const PublicFormPage = () => {
                   settings={{
                     ...(activeQuestion.settings as unknown as TextAnnotationSettings),
                     texts: assignedArticles.length > 0
-                      ? assignedArticles.map((article) => ({ id: article.id, text: article.text, metadata: { shortId: article.shortId } }))
+                      ? assignedArticles.map((article) => ({
+                          id: article.id,
+                          text: article.text,
+                          metadata: { shortId: article.shortId },
+                          paragraphBreakIndices: article.paragraphBreakIndices
+                            ? JSON.parse(article.paragraphBreakIndices)
+                            : undefined,
+                        }))
                       : (activeQuestion.settings as unknown as TextAnnotationSettings).texts || [],
                   }}
                   brandColor={brandColor}

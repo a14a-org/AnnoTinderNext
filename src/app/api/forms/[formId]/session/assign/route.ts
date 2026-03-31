@@ -82,14 +82,14 @@ export const POST = async (
 
     // Check if already assigned (either by articles or jobSet)
     if (session.assignedArticleIds || session.jobSetId) {
-      let assignedArticles: { id: string; shortId: string; text: string }[] = [];
+      let assignedArticles: { id: string; shortId: string; text: string; paragraphBreakIndices: string | null }[] = [];
       let assignedIds: string[] = [];
       let assignedJobSetId: string | null = null;
 
       if (session.jobSetId) {
         const assignedJobSet = await db.jobSet.findUnique({
           where: { id: session.jobSetId },
-          include: { articles: { select: { id: true, shortId: true, text: true } } },
+          include: { articles: { select: { id: true, shortId: true, text: true, paragraphBreakIndices: true } } },
         });
         if (assignedJobSet) {
           assignedArticles = assignedJobSet.articles;
@@ -100,7 +100,7 @@ export const POST = async (
         assignedIds = JSON.parse(session.assignedArticleIds);
         assignedArticles = await db.article.findMany({
           where: { id: { in: assignedIds } },
-          select: { id: true, shortId: true, text: true },
+          select: { id: true, shortId: true, text: true, paragraphBreakIndices: true },
         });
       }
 
@@ -191,7 +191,7 @@ export const POST = async (
       );
     }
 
-    let assignedArticles: { id: string; shortId: string; text: string }[] = [];
+    let assignedArticles: { id: string; shortId: string; text: string; paragraphBreakIndices: string | null }[] = [];
     let assignedIds: string[] = [];
     let articlesToRequire = form.articlesPerSession;
     let assignedJobSetId: string | null = null;
@@ -203,7 +203,7 @@ export const POST = async (
       // Find all job sets for this form
       const allJobSets = await db.jobSet.findMany({
         where: { formId },
-        include: { articles: { select: { id: true, shortId: true, text: true } } },
+        include: { articles: { select: { id: true, shortId: true, text: true, paragraphBreakIndices: true } } },
       });
 
       // Filter to job sets that still have quota space for this group
@@ -255,6 +255,7 @@ export const POST = async (
           id: true,
           shortId: true,
           text: true,
+          paragraphBreakIndices: true,
           quotaCounts: true,
         },
       });
@@ -320,6 +321,7 @@ export const POST = async (
         id: a.id,
         shortId: a.shortId,
         text: a.text,
+        paragraphBreakIndices: a.paragraphBreakIndices,
       })),
       session: {
         ...updatedSession,

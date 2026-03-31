@@ -57,6 +57,7 @@ export interface AssignedArticle {
   id: string;
   shortId: string;
   text: string;
+  paragraphBreakIndices: string | null;
 }
 
 export type AnswerValue = string | number | boolean | string[] | null;
