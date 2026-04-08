@@ -58,7 +58,9 @@ export const classifyParticipant = (
   const normalizedFieldValue = normalizeForComparison(fieldValue)
   const matchingGroup = Object.entries(quotaSettings.groups).find(([, config]) => {
     const normalizedValues = config.values.map(normalizeForComparison)
-    return normalizedValues.includes(normalizedFieldValue)
+    return normalizedValues.some((v) =>
+      normalizedFieldValue === v || normalizedFieldValue.startsWith(`${v}: `)
+    )
   })
 
   return matchingGroup ? matchingGroup[0] : null
