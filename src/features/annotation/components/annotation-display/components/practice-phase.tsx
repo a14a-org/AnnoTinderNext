@@ -200,7 +200,13 @@ export const PracticePhase = ({
             className="w-full py-3 rounded-lg font-medium text-white transition-all cursor-pointer hover:brightness-110 active:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: brandColor }}
           >
-            {isSaving ? "Opslaan..." : !isTimeCompleted ? `Klaar met dit artikel (${formatTimeLeft(timeLeft)})` : "Klaar met dit artikel"}
+            {isSaving
+              ? "Opslaan..."
+              : !isTimeCompleted
+                ? `Volgende artikel (${formatTimeLeft(timeLeft)})`
+                : currentIndex === totalTexts - 1
+                  ? "Voltooien →"
+                  : "Volgende artikel →"}
           </button>
         )}
 
@@ -222,7 +228,7 @@ export const PracticePhase = ({
             <button
               onClick={onNothingFound}
               disabled={isSaving || !isTimeCompleted}
-              className="text-sm text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-base text-gray-700 hover:text-gray-900 px-6 py-3 rounded-lg border-2 border-gray-400 hover:border-gray-500 bg-gray-50 hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {isSaving ? "Opslaan..." : !isTimeCompleted ? `Lees het artikel (${formatTimeLeft(timeLeft)})` : (settings.nothingFoundButtonText || "Ik vind geen schadelijke zin in dit artikel")}
             </button>
