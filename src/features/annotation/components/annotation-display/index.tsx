@@ -4,7 +4,7 @@ import type { Annotation, SelectionRange } from "@/features/annotation";
 import type { AnnotationDisplayProps } from "./types";
 import type { AnsweredSelection } from "./hooks/use-segment-selection";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import { ErrorBoundary } from "@/components/ui";
 import { useAnnotationState, useSegmentSelection, useAnnotationApi, useMinimumTime } from "./hooks";
@@ -46,6 +46,10 @@ export const AnnotationDisplay = ({
   const { isCompleted: isTimeCompleted, timeLeft, resetTimer } = useMinimumTime(
     settings.minimumTimeOnPage ?? 5
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  }, [currentIndex, phase]);
 
   // Split text based on selection mode
   const { segments, paragraphBreakIndices } = useMemo(() => {
