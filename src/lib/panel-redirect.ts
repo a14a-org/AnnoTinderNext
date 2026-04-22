@@ -62,8 +62,9 @@ export const buildPanelRedirectFromForm = (
     );
   }
 
-  // Backward compatibility: existing sessions without panelSource (assumed Dynata)
-  if (form.dynataEnabled && form.dynataReturnUrl) {
+  // Backward compatibility: existing sessions without panelSource (assumed Dynata).
+  // Guarded so a Motivaction session with misconfigured form fields can't silently take this path.
+  if (!session.panelSource && form.dynataEnabled && form.dynataReturnUrl) {
     return buildDynataRedirect(
       form.dynataReturnUrl,
       session.externalPid ?? null,
