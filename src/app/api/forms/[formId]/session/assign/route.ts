@@ -80,8 +80,13 @@ export const POST = async (
       );
     }
 
+    // Stale terminal states whose stored assignment must not short-circuit fresh validation
+    // (otherwise a participant who declined consent or was screened out, then revisits via the same
+    // browser, would silently bypass age/quota/group checks on resubmitted demographics).
+    const RESUMABLE_STATUSES = new Set(["started", "demographics", "annotating", "completed"]);
+
     // Check if already assigned (either by articles or jobSet)
-    if (session.assignedArticleIds || session.jobSetId) {
+    if ((session.assignedArticleIds || session.jobSetId) && RESUMABLE_STATUSES.has(session.status)) {
       let assignedArticles: { id: string; shortId: string; text: string; paragraphBreakIndices: string | null }[] = [];
       let assignedIds: string[] = [];
       let assignedJobSetId: string | null = null;
