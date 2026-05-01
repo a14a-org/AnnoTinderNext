@@ -27,6 +27,7 @@ export interface InformedConsentSettings {
   dataRetentionPeriod: string
   minimumAge: number
   customSections: CustomSection[] | undefined
+  useCustomSectionsOnly: boolean | undefined
   agreeButtonText: string | undefined
   declineButtonText: string | undefined
   declineTitle: string | undefined
@@ -47,6 +48,7 @@ export const DEFAULT_CONSENT_SETTINGS: InformedConsentSettings = {
   dataProcessor: 'Onderzoeksinstelling',
   dataRetentionPeriod: '10 jaar',
   customSections: undefined,
+  useCustomSectionsOnly: undefined,
   agreeButtonText: 'Ik ga akkoord',
   declineButtonText: 'Niet deelnemen',
   declineTitle: 'Bedankt voor uw interesse',
@@ -107,45 +109,47 @@ export const generateConsentText = (
 ): string => {
   const sections: string[] = []
 
-  // Purpose section
-  const purposeText = settings.researchTitle
-    ? `Dit onderzoek "${settings.researchTitle}" wordt uitgevoerd door ${settings.researchers.join(', ')}.`
-    : CONSENT_SECTIONS.purpose.template.replace(
-        '{{researchers}}',
-        settings.researchers.join(', ')
-      )
-  sections.push(`## ${CONSENT_SECTIONS.purpose.title}\n\n${purposeText}`)
+  if (!settings.useCustomSectionsOnly) {
+    // Purpose section
+    const purposeText = settings.researchTitle
+      ? `Dit onderzoek "${settings.researchTitle}" wordt uitgevoerd door ${settings.researchers.join(', ')}.`
+      : CONSENT_SECTIONS.purpose.template.replace(
+          '{{researchers}}',
+          settings.researchers.join(', ')
+        )
+    sections.push(`## ${CONSENT_SECTIONS.purpose.title}\n\n${purposeText}`)
 
-  // Procedure section
-  const compensationText = settings.compensation
-    ? ` Als dank voor uw deelname ontvangt u ${settings.compensation}.`
-    : ''
-  sections.push(
-    `## ${CONSENT_SECTIONS.procedure.title}\n\nDeelname aan dit onderzoek duurt ongeveer ${settings.estimatedDuration}.${compensationText}`
-  )
-
-  // Content warnings if present
-  if (settings.contentWarnings && settings.contentWarnings.length > 0) {
+    // Procedure section
+    const compensationText = settings.compensation
+      ? ` Als dank voor uw deelname ontvangt u ${settings.compensation}.`
+      : ''
     sections.push(
-      `## Let op\n\nDit onderzoek bevat mogelijk: ${settings.contentWarnings.join(', ')}. Als u hier moeite mee heeft, kunt u ervoor kiezen om niet deel te nemen.`
+      `## ${CONSENT_SECTIONS.procedure.title}\n\nDeelname aan dit onderzoek duurt ongeveer ${settings.estimatedDuration}.${compensationText}`
+    )
+
+    // Content warnings if present
+    if (settings.contentWarnings && settings.contentWarnings.length > 0) {
+      sections.push(
+        `## Let op\n\nDit onderzoek bevat mogelijk: ${settings.contentWarnings.join(', ')}. Als u hier moeite mee heeft, kunt u ervoor kiezen om niet deel te nemen.`
+      )
+    }
+
+    // Voluntary participation
+    sections.push(
+      `## ${CONSENT_SECTIONS.voluntary.title}\n\n${CONSENT_SECTIONS.voluntary.template}`
+    )
+
+    // Data handling
+    const dataList = settings.dataCollected.join(', ')
+    sections.push(
+      `## ${CONSENT_SECTIONS.dataHandling.title}\n\nWe verzamelen de volgende gegevens: ${dataList}. Uw gegevens worden vertrouwelijk behandeld en verwerkt door ${settings.dataProcessor}.`
+    )
+
+    // Retention
+    sections.push(
+      `## ${CONSENT_SECTIONS.retention.title}\n\nUw gegevens worden ${settings.dataRetentionPeriod} bewaard, waarna ze worden verwijderd.`
     )
   }
-
-  // Voluntary participation
-  sections.push(
-    `## ${CONSENT_SECTIONS.voluntary.title}\n\n${CONSENT_SECTIONS.voluntary.template}`
-  )
-
-  // Data handling
-  const dataList = settings.dataCollected.join(', ')
-  sections.push(
-    `## ${CONSENT_SECTIONS.dataHandling.title}\n\nWe verzamelen de volgende gegevens: ${dataList}. Uw gegevens worden vertrouwelijk behandeld en verwerkt door ${settings.dataProcessor}.`
-  )
-
-  // Retention
-  sections.push(
-    `## ${CONSENT_SECTIONS.retention.title}\n\nUw gegevens worden ${settings.dataRetentionPeriod} bewaard, waarna ze worden verwijderd.`
-  )
 
   // Custom sections
   if (settings.customSections) {

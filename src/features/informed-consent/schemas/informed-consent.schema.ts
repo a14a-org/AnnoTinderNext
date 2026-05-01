@@ -24,6 +24,7 @@ export const informedConsentSettingsSchema = z.object({
   dataRetentionPeriod: z.string().min(1),
   minimumAge: z.number().min(0),
   customSections: z.array(customSectionSchema).optional(),
+  useCustomSectionsOnly: z.boolean().optional(),
   agreeButtonText: z.string().optional(),
   declineButtonText: z.string().optional(),
   declineTitle: z.string().optional(),
