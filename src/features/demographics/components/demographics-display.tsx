@@ -2,11 +2,11 @@
 
 import type { DemographicsSettings, DemographicAnswers, DemographicField } from '../demographics'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 
-import { validateDemographics } from '../demographics'
+import { flattenFields, validateDemographics } from '../demographics'
 import { letterToIndex } from '@/lib/keyboard-shortcuts'
 import { DEFAULT_BRAND_COLOR } from '@/config/theme'
 
@@ -29,8 +29,15 @@ export const DemographicsDisplay = ({
   const [showOtherInput, setShowOtherInput] = useState(false)
   const [otherText, setOtherText] = useState('')
 
-  const currentField = settings.fields[currentFieldIndex]
-  const totalFields = settings.fields.length
+  // Conditional follow-ups can change the rendered field list dynamically.
+  // Recompute on every render so newly-active follow-ups appear immediately after
+  // the parent option is chosen.
+  const renderedFields = useMemo(
+    () => flattenFields(settings.fields, answers),
+    [settings.fields, answers]
+  )
+  const currentField = renderedFields[currentFieldIndex]
+  const totalFields = renderedFields.length
   const progress = ((currentFieldIndex + 1) / totalFields) * 100
 
   const goToNextField = useCallback(() => {
@@ -43,7 +50,8 @@ export const DemographicsDisplay = ({
       setAnswers(finalAnswers)
     }
 
-    if (currentFieldIndex < totalFields - 1) {
+    const nextRendered = flattenFields(settings.fields, finalAnswers)
+    if (currentFieldIndex < nextRendered.length - 1) {
       setCurrentFieldIndex(currentFieldIndex + 1)
       setShowOtherInput(false)
       setOtherText('')
@@ -53,7 +61,7 @@ export const DemographicsDisplay = ({
         onComplete(finalAnswers)
       }
     }
-  }, [currentFieldIndex, totalFields, answers, settings, onComplete, currentField])
+  }, [currentFieldIndex, answers, settings, onComplete, currentField])
 
   const handleSelect = useCallback(
     (value: string) => {
@@ -74,7 +82,10 @@ export const DemographicsDisplay = ({
       setAnswers(newAnswers)
 
       setTimeout(() => {
-        if (currentFieldIndex < totalFields - 1) {
+        // Recompute the flattened list with the new answer so any newly-active
+        // follow-up fields are part of the navigable sequence before we advance.
+        const nextRendered = flattenFields(settings.fields, newAnswers)
+        if (currentFieldIndex < nextRendered.length - 1) {
           setCurrentFieldIndex(currentFieldIndex + 1)
           setShowOtherInput(false)
           setOtherText('')
@@ -86,7 +97,7 @@ export const DemographicsDisplay = ({
         }
       }, 300)
     },
-    [answers, currentField, currentFieldIndex, totalFields, settings, onComplete, disabled]
+    [answers, currentField, currentFieldIndex, settings, onComplete, disabled]
   )
 
   const handleOtherTextSubmit = useCallback(() => {
@@ -98,10 +109,24 @@ export const DemographicsDisplay = ({
     }
     setAnswers(newAnswers)
 
+    // Mirror handleSelect: navigate using the freshly-built newAnswers so any
+    // dynamic follow-ups are accounted for and validation sees the just-saved value.
+    // (Calling goToNextField here would close over stale `answers` and could fail
+    // the final-field validation check on follow-up fields.)
     setTimeout(() => {
-      goToNextField()
+      const nextRendered = flattenFields(settings.fields, newAnswers)
+      if (currentFieldIndex < nextRendered.length - 1) {
+        setCurrentFieldIndex(currentFieldIndex + 1)
+        setShowOtherInput(false)
+        setOtherText('')
+      } else {
+        const validation = validateDemographics(newAnswers, settings)
+        if (validation.valid) {
+          onComplete(newAnswers)
+        }
+      }
     }, 300)
-  }, [answers, currentField, otherText, disabled, goToNextField])
+  }, [answers, currentField, currentFieldIndex, otherText, settings, onComplete, disabled])
 
   const handleBack = useCallback(() => {
     if (disabled) return
