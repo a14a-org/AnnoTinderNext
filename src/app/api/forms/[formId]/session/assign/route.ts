@@ -170,8 +170,44 @@ export const POST = async (
       );
     }
 
+    // Conditional follow-up rule for the AAVA Nederlands + hasOtherEthnicBackground flow.
+    // When a participant self-reports "Nederlands" we ask whether they additionally have
+    // a non-Dutch ethnic background. "Nee" screens out; "Ja, namelijk: <X>" lets them
+    // through, treated as minority for quota purposes. The original Nederlands answer is
+    // preserved in the stored ethnicity column so the data stays auditable.
+    const ethnicityNormalized = (demographicData.ethnicity ?? "").toLowerCase().trim();
+    const followUp = (demographicData.hasOtherEthnicBackground ?? "").trim();
+    const classificationData = { ...demographicData };
+    if (ethnicityNormalized === "nederlands") {
+      if (followUp === "Nee") {
+        await db.annotationSession.update({
+          where: { id: session.id },
+          data: {
+            gender: demographicData.gender,
+            ethnicity: demographicData.ethnicity,
+            ageRange: demographicData.ageRange,
+            status: "screened_out",
+          },
+        });
+        return NextResponse.json(
+          {
+            assigned: false,
+            reason: "no_matching_group",
+            message: "Participant does not match any demographic group",
+            returnUrl: buildPanelRedirectFromForm(form, session, "screenout"),
+          },
+          { status: 409 }
+        );
+      }
+      if (followUp.startsWith("Ja, namelijk:")) {
+        // Override ethnicity for classification only; the DB still records "Nederlands".
+        // "Anders" matches the minority group via the existing quotaSettings configuration.
+        classificationData.ethnicity = "Anders";
+      }
+    }
+
     // Classify participant into a demographic group
-    const demographicGroup = classifyParticipant(demographicData, quotaSettings);
+    const demographicGroup = classifyParticipant(classificationData, quotaSettings);
 
     if (!demographicGroup) {
       // No matching group found - screen out

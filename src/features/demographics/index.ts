@@ -1,6 +1,8 @@
 export {
   classifyDemographic,
   validateDemographics,
+  getActiveFollowUps,
+  flattenFields,
   DEFAULT_DEMOGRAPHICS_SETTINGS,
 } from './demographics'
 export type {
