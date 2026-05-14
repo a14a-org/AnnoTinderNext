@@ -239,7 +239,12 @@ export const POST = async (
 
 
     if (form.assignmentStrategy === "JOB_SET") {
-      articlesToRequire = form.articlesPerSession; // Job set size is stored here now
+      // articlesToRequire is set from the chosen jobSet's actual article count
+      // below — never trust form.articlesPerSession as a stand-in. A jobSet
+      // with fewer articles than form.articlesPerSession (e.g., set-360 with
+      // 3 articles vs the form's expected 4) would otherwise leave its
+      // participants permanently stuck at "annotating" status because
+      // /session/complete checks completed >= articlesRequired.
 
       // Find all job sets for this form
       const allJobSets = await db.jobSet.findMany({
@@ -285,6 +290,7 @@ export const POST = async (
       assignedArticles = selectedJobSet.articles;
       assignedIds = selectedJobSet.articles.map((a) => a.id);
       assignedJobSetId = selectedJobSet.id;
+      articlesToRequire = selectedJobSet.articles.length;
 
     } else { // INDIVIDUAL assignmentStrategy
       const requiredArticles = form.articlesPerSession;
