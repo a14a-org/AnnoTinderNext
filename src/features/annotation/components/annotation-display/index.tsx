@@ -174,8 +174,13 @@ export const AnnotationDisplay = ({
           transitionToMain();
           resetSelection();
         } else {
+          // Await both completion paths before redirecting: window.location.href
+          // tears down the page (including in-flight fetches), so any unawaited
+          // POST inside onComplete (e.g. the form-submission write that persists
+          // demographics + answers) would be aborted by the redirect. Caused
+          // ~1,578 sessions of dropped demographics before this fix.
           const redirectUrl = await completeSession();
-          onComplete(newAnnotations);
+          await onComplete(newAnnotations);
           if (redirectUrl) {
             window.location.href = redirectUrl;
           }
@@ -233,7 +238,7 @@ export const AnnotationDisplay = ({
         resetSelection();
       } else {
         const redirectUrl = await completeSession();
-        onComplete(newAnnotations);
+        await onComplete(newAnnotations);
         if (redirectUrl) {
           window.location.href = redirectUrl;
         }
@@ -294,7 +299,7 @@ export const AnnotationDisplay = ({
         resetSelection();
       } else {
         const redirectUrl = await completeSession();
-        onComplete(newAnnotations);
+        await onComplete(newAnnotations);
         if (redirectUrl) {
           window.location.href = redirectUrl;
         }

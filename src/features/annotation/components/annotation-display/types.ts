@@ -8,7 +8,7 @@ export type Phase = "practice" | "transition" | "main";
 export interface AnnotationDisplayProps {
   settings: TextAnnotationSettings;
   brandColor: string | undefined;
-  onComplete: (annotations: Annotation[]) => void;
+  onComplete: (annotations: Annotation[]) => void | Promise<void>;
   /** Session token for saving annotations to the API */
   sessionToken: string | undefined;
   /** Form ID for API calls */
