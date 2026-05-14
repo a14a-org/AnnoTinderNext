@@ -283,6 +283,17 @@ model AnnotationSession {
   ageRange        String? // "18-24" | "25-34" | etc.
   demographicGroup String? // "caucasian" | "minority" (derived)
 
+  // Rich demographics (AAVA: collected on the demographics step but historically dropped).
+  // All nullable so legacy rows stay valid; populated going forward via /session/assign.
+  birthDate                String? // "MM-YYYY"
+  education                String?
+  politicalOrientation     Int?    // slider 0..10
+  religion                 String?
+  feelingGeneral           Int?    // feeling thermometer 0..100 (general)
+  feelingOtherEthnicity    Int?    // feeling thermometer 0..100 (out-group)
+  discriminationExperience String?
+  hasOtherEthnicBackground String? // Conditional follow-up after "Nederlands" ethnicity
+
   // Assignment
   // In INDIVIDUAL mode: JSON array of article IDs
   assignedArticleIds String?

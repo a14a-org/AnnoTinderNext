@@ -14,6 +14,33 @@ import {
 } from "@/features/quota";
 
 /**
+ * Coerce a slider answer (sent as string from the frontend) to an Int, or null
+ * for missing/invalid values. Out-of-range values are kept — clamping is a
+ * frontend concern.
+ */
+const toInt = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+};
+
+/**
+ * Map the raw demographic answer object (keyed by field id, string values) to
+ * the typed AnnotationSession columns. Always returns the full shape so every
+ * update site overwrites stale resume-state consistently.
+ */
+const richDemographicFields = (d: Record<string, string | undefined>) => ({
+  birthDate: d.birthDate ?? null,
+  education: d.education ?? null,
+  politicalOrientation: toInt(d.politicalOrientation),
+  religion: d.religion ?? null,
+  feelingGeneral: toInt(d.feelingGeneral),
+  feelingOtherEthnicity: toInt(d.feelingOtherEthnicity),
+  discriminationExperience: d.discriminationExperience ?? null,
+  hasOtherEthnicBackground: d.hasOtherEthnicBackground ?? null,
+});
+
+/**
  * Shuffle array using Fisher-Yates algorithm
  */
 const shuffleArray = <T>(array: T[]) => {
@@ -85,6 +112,20 @@ export const POST = async (
     // browser, would silently bypass age/quota/group checks on resubmitted demographics).
     const RESUMABLE_STATUSES = new Set(["started", "demographics", "annotating", "completed"]);
 
+    // Refresh rich demographics on every POST, even when the short-circuit below
+    // returns an already-assigned response. Without this, a participant who
+    // resumes a session (browser back, multi-tab, panel relaunch) submits fresh
+    // demographics but they're silently dropped — the bug that left rich columns
+    // null for legacy sessions. We only write the additive rich fields; gender /
+    // ethnicity / demographicGroup are intentionally left untouched on resume to
+    // preserve quota classification.
+    if (demographicData?.gender) {
+      await db.annotationSession.update({
+        where: { id: session.id },
+        data: richDemographicFields(demographicData),
+      });
+    }
+
     // Check if already assigned (either by articles or jobSet)
     if ((session.assignedArticleIds || session.jobSetId) && RESUMABLE_STATUSES.has(session.status)) {
       let assignedArticles: { id: string; shortId: string; text: string; paragraphBreakIndices: string | null }[] = [];
@@ -155,6 +196,7 @@ export const POST = async (
           gender: demographicData.gender,
           ethnicity: demographicData.ethnicity,
           ageRange: demographicData.ageRange,
+          ...richDemographicFields(demographicData),
           status: "screened_out",
         },
       });
@@ -186,6 +228,7 @@ export const POST = async (
             gender: demographicData.gender,
             ethnicity: demographicData.ethnicity,
             ageRange: demographicData.ageRange,
+            ...richDemographicFields(demographicData),
             status: "screened_out",
           },
         });
@@ -217,6 +260,7 @@ export const POST = async (
           gender: demographicData.gender,
           ethnicity: demographicData.ethnicity,
           ageRange: demographicData.ageRange,
+          ...richDemographicFields(demographicData),
           status: "screened_out",
         },
       });
@@ -262,6 +306,7 @@ export const POST = async (
             gender: demographicData.gender,
             ethnicity: demographicData.ethnicity,
             ageRange: demographicData.ageRange,
+            ...richDemographicFields(demographicData),
             demographicGroup,
             status: "screened_out",
           },
@@ -316,6 +361,7 @@ export const POST = async (
             gender: demographicData.gender,
             ethnicity: demographicData.ethnicity,
             ageRange: demographicData.ageRange,
+            ...richDemographicFields(demographicData),
             demographicGroup,
             status: "screened_out",
           },
@@ -347,6 +393,7 @@ export const POST = async (
         gender: demographicData.gender,
         ethnicity: demographicData.ethnicity,
         ageRange: demographicData.ageRange,
+        ...richDemographicFields(demographicData),
         demographicGroup,
         assignedArticleIds: form.assignmentStrategy === "INDIVIDUAL" ? JSON.stringify(assignedIds) : null, // Only for individual mode
         jobSetId: assignedJobSetId, // Only for job set mode
