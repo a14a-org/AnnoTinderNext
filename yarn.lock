@@ -2032,7 +2032,7 @@ __metadata:
     clsx: "npm:^2.1.1"
     date-fns: "npm:^4.1.0"
     dotenv: "npm:^17.4.2"
-    eslint: "npm:^10.3.0"
+    eslint: "npm:^10.4.0"
     eslint-config-next: "npm:16.2.6"
     framer-motion: "npm:^12.38.0"
     jsdom: "npm:^28.1.0"
@@ -3191,7 +3191,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^10.3.0":
+"eslint@npm:^10.4.0":
   version: 10.4.0
   resolution: "eslint@npm:10.4.0"
   dependencies:
