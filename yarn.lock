@@ -2043,7 +2043,7 @@ __metadata:
     dotenv: "npm:^17.4.2"
     eslint: "npm:^10.4.0"
     eslint-config-next: "npm:16.2.6"
-    framer-motion: "npm:^12.39.0"
+    framer-motion: "npm:^12.40.0"
     jsdom: "npm:^28.1.0"
     lucide-react: "npm:^0.577.0"
     nanoid: "npm:^5.1.11"
@@ -3457,7 +3457,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:^12.39.0":
+"framer-motion@npm:^12.40.0":
   version: 12.40.0
   resolution: "framer-motion@npm:12.40.0"
   dependencies:
