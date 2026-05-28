@@ -2056,7 +2056,7 @@ __metadata:
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
     react-markdown: "npm:^10.1.0"
-    resend: "npm:^6.12.3"
+    resend: "npm:^6.12.4"
     tailwind-merge: "npm:^3.6.0"
     tailwindcss: "npm:^4.3.0"
     typescript: "npm:5.9.3"
@@ -5670,18 +5670,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"resend@npm:^6.12.3":
-  version: 6.12.3
-  resolution: "resend@npm:6.12.3"
+"resend@npm:^6.12.4":
+  version: 6.12.4
+  resolution: "resend@npm:6.12.4"
   dependencies:
     postal-mime: "npm:2.7.4"
-    svix: "npm:1.92.2"
+    standardwebhooks: "npm:1.0.0"
   peerDependencies:
     "@react-email/render": "*"
   peerDependenciesMeta:
     "@react-email/render":
       optional: true
-  checksum: 10c0/1dd2626afea69aa1225c04d08f886a4745a3a7dabdee2539101b678e5b586a6cae7e3fad528939d4a234587c930af1d7b4ddfbb87c8262b994cfc2c9427e7a1a
+  checksum: 10c0/092681171100dc704848c2bf67d7ab3ffe8ebbf6683e127a453cb45110a12c59654fd878ea2300dcc0d56fcb05558657c9d696216357d02f823a2bea305bb26c
   languageName: node
   linkType: hard
 
@@ -6257,15 +6257,6 @@ __metadata:
   version: 1.0.0
   resolution: "supports-preserve-symlinks-flag@npm:1.0.0"
   checksum: 10c0/6c4032340701a9950865f7ae8ef38578d8d7053f5e10518076e6554a9381fa91bd9c6850193695c141f32b21f979c985db07265a758867bac95de05f7d8aeb39
-  languageName: node
-  linkType: hard
-
-"svix@npm:1.92.2":
-  version: 1.92.2
-  resolution: "svix@npm:1.92.2"
-  dependencies:
-    standardwebhooks: "npm:1.0.0"
-  checksum: 10c0/975fe645bbb8d746726d3fc73845e2e18a69f5f7df9340ab5c97f7e0e59497abbafc178c8405d036f43f046170147cee137761f09095358fc4a9c1e471762267
   languageName: node
   linkType: hard
 
