@@ -2,7 +2,7 @@
 
 import type { Question, QuestionUpdatePayload, InformedConsentSettings, TextAnnotationSettings, DemographicsSettings, InstructionsSettings } from "../../types";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Loader2, Trash2 } from "lucide-react";
 
 import { Input } from "@/components/ui";
@@ -39,37 +39,55 @@ export const QuestionEditor = ({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refs for inputs to check focus before syncing
-  const titleInputRef = useRef<HTMLInputElement>(null);
-  const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
-  const placeholderInputRef = useRef<HTMLInputElement>(null);
+  // Tracks which text field the user is currently editing, so an incoming
+  // (optimistic) prop echo does not clobber the value being typed. Stored in
+  // state (not a ref) so it can be read safely during render.
+  const [focusedField, setFocusedField] = useState<
+    "title" | "description" | "placeholder" | null
+  >(null);
 
-  // Sync state with props, but only if the input is NOT focused
-  useEffect(() => {
-    if (document.activeElement !== titleInputRef.current) {
+  // Sync state with props by adjusting state during render (React's
+  // recommended alternative to set-state-in-effect). For the text fields we
+  // preserve the original behaviour of NOT overwriting a field the user is
+  // currently editing.
+  const nextDescriptionProp = question.description || "";
+  const nextPlaceholderProp = question.placeholder || "";
+
+  const [prevTitleProp, setPrevTitleProp] = useState(question.title);
+  if (prevTitleProp !== question.title) {
+    setPrevTitleProp(question.title);
+    if (focusedField !== "title") {
       setTitle(question.title);
     }
-  }, [question.title]);
+  }
 
-  useEffect(() => {
-    if (document.activeElement !== descriptionInputRef.current) {
-      setDescription(question.description || "");
+  const [prevDescriptionProp, setPrevDescriptionProp] = useState(nextDescriptionProp);
+  if (prevDescriptionProp !== nextDescriptionProp) {
+    setPrevDescriptionProp(nextDescriptionProp);
+    if (focusedField !== "description") {
+      setDescription(nextDescriptionProp);
     }
-  }, [question.description]);
+  }
 
-  useEffect(() => {
-    if (document.activeElement !== placeholderInputRef.current) {
-      setPlaceholder(question.placeholder || "");
+  const [prevPlaceholderProp, setPrevPlaceholderProp] = useState(nextPlaceholderProp);
+  if (prevPlaceholderProp !== nextPlaceholderProp) {
+    setPrevPlaceholderProp(nextPlaceholderProp);
+    if (focusedField !== "placeholder") {
+      setPlaceholder(nextPlaceholderProp);
     }
-  }, [question.placeholder]);
+  }
 
-  useEffect(() => {
+  const [prevIsRequiredProp, setPrevIsRequiredProp] = useState(question.isRequired);
+  if (prevIsRequiredProp !== question.isRequired) {
+    setPrevIsRequiredProp(question.isRequired);
     setIsRequired(question.isRequired);
-  }, [question.isRequired]);
+  }
 
-  useEffect(() => {
+  const [prevOptionsProp, setPrevOptionsProp] = useState(question.options);
+  if (prevOptionsProp !== question.options) {
+    setPrevOptionsProp(question.options);
     setOptions(question.options);
-  }, [question.options]);
+  }
 
   // Helper to trigger updates
   const triggerUpdate = (updates: Partial<QuestionUpdatePayload>) => {
@@ -179,7 +197,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Consent Title</label>
           <Input 
-            ref={titleInputRef}
+            onFocus={() => setFocusedField("title")}
+            onBlur={() => setFocusedField(null)}
             value={title} 
             onChange={(e) => handleTitleChange(e.target.value)} 
             placeholder="Informed Consent" 
@@ -188,7 +207,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Introduction Text</label>
           <textarea
-            ref={descriptionInputRef}
+            onFocus={() => setFocusedField("description")}
+            onBlur={() => setFocusedField(null)}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Brief introduction to the consent form"
@@ -217,7 +237,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Question Title</label>
           <Input 
-            ref={titleInputRef}
+            onFocus={() => setFocusedField("title")}
+            onBlur={() => setFocusedField(null)}
             value={title} 
             onChange={(e) => handleTitleChange(e.target.value)} 
             placeholder="Text Annotation" 
@@ -226,7 +247,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
           <textarea
-            ref={descriptionInputRef}
+            onFocus={() => setFocusedField("description")}
+            onBlur={() => setFocusedField(null)}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Instructions for the annotation task"
@@ -267,7 +289,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Section Title</label>
           <Input 
-            ref={titleInputRef}
+            onFocus={() => setFocusedField("title")}
+            onBlur={() => setFocusedField(null)}
             value={title} 
             onChange={(e) => handleTitleChange(e.target.value)} 
             placeholder="Demographics" 
@@ -276,7 +299,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
           <textarea
-            ref={descriptionInputRef}
+            onFocus={() => setFocusedField("description")}
+            onBlur={() => setFocusedField(null)}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Brief introduction to the demographics section"
@@ -305,7 +329,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Instructions Title</label>
           <Input
-            ref={titleInputRef}
+            onFocus={() => setFocusedField("title")}
+            onBlur={() => setFocusedField(null)}
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Instructies"
@@ -314,7 +339,8 @@ export const QuestionEditor = ({
         <div>
           <label className="block text-sm font-medium text-obsidian mb-1">Subtitle (optional)</label>
           <textarea
-            ref={descriptionInputRef}
+            onFocus={() => setFocusedField("description")}
+            onBlur={() => setFocusedField(null)}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             placeholder="Brief introduction before the instructions"
@@ -359,7 +385,8 @@ export const QuestionEditor = ({
           {isWelcome ? "Edit Title" : isScreen ? "Heading" : "Question"}
         </label>
         <Input
-          ref={titleInputRef}
+          onFocus={() => setFocusedField("title")}
+          onBlur={() => setFocusedField(null)}
           value={title}
           onChange={(e) => handleTitleChange(e.target.value)}
           placeholder={getTitlePlaceholder()}
@@ -369,7 +396,8 @@ export const QuestionEditor = ({
       <div>
         <label className="block text-sm font-medium text-obsidian mb-1">Description</label>
         <textarea
-          ref={descriptionInputRef}
+          onFocus={() => setFocusedField("description")}
+          onBlur={() => setFocusedField(null)}
           value={description}
           onChange={(e) => handleDescriptionChange(e.target.value)}
           placeholder={getDescriptionPlaceholder()}
@@ -384,7 +412,8 @@ export const QuestionEditor = ({
             <div>
               <label className="block text-sm font-medium text-obsidian mb-1">Placeholder</label>
               <Input 
-                ref={placeholderInputRef}
+                onFocus={() => setFocusedField("placeholder")}
+                onBlur={() => setFocusedField(null)}
                 value={placeholder} 
                 onChange={(e) => handlePlaceholderChange(e.target.value)} 
                 placeholder="Placeholder text" 

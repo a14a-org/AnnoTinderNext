@@ -26,15 +26,22 @@ export const SpecialScreenCard = ({
   const [title, setTitle] = useState(question.title);
   const [description, setDescription] = useState(question.description || "");
 
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
+  // Mirror incoming props into local state by adjusting state during render
+  // (React's recommended alternative to set-state-in-effect).
+  const [prevTitle, setPrevTitle] = useState(question.title);
+  if (prevTitle !== question.title) {
+    setPrevTitle(question.title);
     setTitle(question.title);
-  }, [question.title]);
+  }
 
-  useEffect(() => {
-    setDescription(question.description || "");
-  }, [question.description]);
+  const nextDescription = question.description || "";
+  const [prevDescription, setPrevDescription] = useState(nextDescription);
+  if (prevDescription !== nextDescription) {
+    setPrevDescription(nextDescription);
+    setDescription(nextDescription);
+  }
+
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus logic
   useEffect(() => {

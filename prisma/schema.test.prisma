@@ -1,0 +1,386 @@
+// Prisma schema for OmroepZwart
+// SQLite for development, easily switch to PostgreSQL by changing provider
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma-test"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTH.JS MODELS
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  forms    Form[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// FORM BUILDER MODELS
+// ============================================================================
+
+model Form {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  description     String?
+  brandColor      String?  @default("#FF5A5F")
+  buttonText      String?  @default("Start")
+  submitText      String?  @default("Submit")
+  isPublished     Boolean  @default(false)
+  allowMultiple   Boolean  @default(true)
+  showProgressBar Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Owner
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Annotation quota settings
+  articlesPerSession Int    @default(20)
+  sessionTimeoutMins Int    @default(10)
+  quotaSettings      String? // JSON: QuotaSettings - flexible demographic grouping config
+  assignmentStrategy String  @default("INDIVIDUAL") // "INDIVIDUAL" | "JOB_SET"
+
+  // Dynata panel integration settings
+  dynataEnabled   Boolean @default(false)
+  dynataReturnUrl String? // Base return URL: https://api.dynata.com/respondent/exit
+  dynataBasicCode String? // Project-specific basic code from Dynata
+
+  // Motivaction (StemPunt) panel integration settings
+  motivactionEnabled   Boolean @default(false)
+  motivactionReturnUrl String? // Base return URL: https://www.stempunt.nu/s.asp
+
+  questions   Question[]
+  submissions FormSubmission[]
+  articles    Article[]
+  jobSets     JobSet[]
+  sessions    AnnotationSession[]
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([userId])
+  @@map("forms")
+}
+
+model Question {
+  id           String   @id @default(cuid())
+  formId       String
+  type         String   // QuestionType as string for SQLite compatibility
+  title        String
+  description  String?
+  placeholder  String?
+  isRequired   Boolean  @default(false)
+  displayOrder Int      @default(0)
+  settings     String?  // JSON stored as string for SQLite
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  form    Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers Answer[]
+
+  @@index([formId])
+  @@index([displayOrder])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id           String   @id @default(cuid())
+  questionId   String
+  label        String
+  value        String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([displayOrder])
+  @@map("question_options")
+}
+
+model FormSubmission {
+  id          String   @id @default(cuid())
+  formId      String
+  submittedAt DateTime @default(now())
+
+  // Optional metadata
+  ipAddress String?
+  userAgent String?
+  referrer  String?
+
+  // Time tracking
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Link to annotation session (for TEXT_ANNOTATION forms)
+  annotationSessionId String? @unique
+  annotationSession   AnnotationSession? @relation(fields: [annotationSessionId], references: [id])
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([formId])
+  @@index([submittedAt])
+  @@map("form_submissions")
+}
+
+model Answer {
+  id           String @id @default(cuid())
+  submissionId String
+  questionId   String
+
+  // Value stored differently based on question type
+  textValue    String?
+  numberValue  Float?
+  booleanValue Boolean?
+  dateValue    DateTime?
+  jsonValue    String? // JSON arrays stored as string for SQLite
+
+  createdAt DateTime @default(now())
+
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([questionId])
+  @@map("answers")
+}
+
+// ============================================================================
+// ANNOTATION QUOTA SYSTEM
+// ============================================================================
+
+// Job Set - A group of articles (usually 3) assigned to participants
+model JobSet {
+  id          String   @id @default(cuid())
+  formId      String
+  shortId     String   // e.g., "set-1"
+
+  // Quota tracking (JSON: { "dutch": count, "minority": count })
+  quotaCounts String   @default("{}")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  form     Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  articles Article[]
+  sessions AnnotationSession[]
+
+  @@unique([formId, shortId])
+  @@index([formId])
+  @@map("job_sets")
+}
+
+// Articles imported from CSV for annotation tasks
+model Article {
+  id        String @id @default(cuid())
+  formId    String
+  shortId   String // ARTICLE_SHORT_ID from CSV (e.g., "f350ea2")
+  text      String // The article text content
+
+  // Pre-computed paragraph break indices (JSON array of sentence indices, e.g., "[3, 7, 12]")
+  paragraphBreakIndices String?
+
+  // Flexible quota tracking (JSON: { [groupName]: count })
+  // NOTE: In JOB_SET mode, quotas are tracked on the JobSet, not here.
+  quotaCounts String @default("{}")
+
+  // Job Set Relation
+  jobSetId  String?
+  jobSet    JobSet? @relation(fields: [jobSetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  form        Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  annotations ArticleAnnotation[]
+
+  @@unique([formId, shortId])
+  @@index([formId])
+  @@index([jobSetId])
+  @@map("articles")
+}
+
+// Participant session for annotation tasks
+model AnnotationSession {
+  id     String @id @default(cuid())
+  formId String
+
+  // External panel integration
+  externalPid    String? // Participant ID (Dynata: psid, Motivaction: d value)
+  externalParam2 String? // Second identifier (Motivaction: k value)
+  returnUrl      String? // Redirect URL for completion/screenout
+  panelSource    String? // "dynata" | "motivaction" | null
+
+  // Session token for persistence
+  sessionToken String @unique @default(cuid())
+
+  // Demographics (collected after consent)
+  gender          String? // "man" | "woman" | "other"
+  ethnicity       String? // "Nederlands" | "Surinaams" | etc.
+  ageRange        String? // "18-24" | "25-34" | etc.
+  demographicGroup String? // "caucasian" | "minority" (derived)
+
+  // Rich demographics (AAVA: collected on the demographics step but historically dropped).
+  // All nullable so legacy rows stay valid; populated going forward via /session/assign.
+  birthDate                String? // "MM-YYYY"
+  education                String?
+  politicalOrientation     Int?    // slider 0..10
+  religion                 String?
+  feelingGeneral           Int?    // feeling thermometer 0..100 (general)
+  feelingOtherEthnicity    Int?    // feeling thermometer 0..100 (out-group)
+  discriminationExperience String?
+  hasOtherEthnicBackground String? // Conditional follow-up after "Nederlands" ethnicity
+
+  // Assignment
+  // In INDIVIDUAL mode: JSON array of article IDs
+  assignedArticleIds String?
+
+  // In JOB_SET mode: Link to the assigned set
+  jobSetId String?
+  jobSet   JobSet? @relation(fields: [jobSetId], references: [id])
+
+  articlesRequired   Int     @default(20)
+  articlesCompleted  Int     @default(0)
+
+  // Status tracking
+  status      String   @default("started") // started | consent_declined | demographics | annotating | completed | screened_out | expired
+  lastActiveAt DateTime @default(now())
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  form           Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  annotations    ArticleAnnotation[]
+  formSubmission FormSubmission?
+
+  @@index([formId, demographicGroup, status])
+  @@index([sessionToken])
+  @@index([jobSetId])
+  @@map("annotation_sessions")
+}
+
+// ============================================================================
+// CLIENT ERROR TELEMETRY
+// ============================================================================
+
+// Stores client-side errors for debugging and monitoring
+model ClientError {
+  id        String   @id @default(cuid())
+
+  // Error details
+  errorName    String?
+  errorMessage String
+  errorStack   String?  // Full stack trace
+  componentStack String? // React component stack
+
+  // Context
+  url          String   // URL where error occurred
+  userAgent    String?  // Browser/device info
+  formId       String?  // Associated form if applicable
+  sessionToken String?  // Annotation session token if applicable
+
+  // Metadata
+  timestamp    DateTime @default(now())
+  resolved     Boolean  @default(false)
+  notes        String?  // Admin notes about the error
+
+  @@index([formId])
+  @@index([timestamp])
+  @@index([resolved])
+  @@map("client_errors")
+}
+
+// Individual annotation record
+model ArticleAnnotation {
+  id        String @id @default(cuid())
+  sessionId String
+  articleId String
+
+  // Selection data (legacy single-selection fields)
+  selectedText  String? // The text that was selected (or first selection text for backward compat)
+  sentenceIndex Int? // Which sentence (0-indexed, if sentence mode)
+  startIndex    Int? // Character start position in original text
+  endIndex      Int? // Character end position in original text
+
+  // Multi-selection support (new)
+  selections String? // JSON array of SelectionRange objects
+
+  // Follow-up question response
+  followUpType   String? // "multiple_choice" | "open_text" | "rating_scale"
+  followUpAnswer String? // The answer value
+
+  // Skip tracking
+  skipped Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  session AnnotationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  article Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, articleId]) // One annotation per article per session
+  @@index([sessionId])
+  @@index([articleId])
+  @@map("article_annotations")
+}
