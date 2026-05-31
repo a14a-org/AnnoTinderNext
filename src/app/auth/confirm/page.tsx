@@ -1,20 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 function ConfirmPageContent() {
     const searchParams = useSearchParams();
     const url = searchParams.get("url");
     const [isRedirecting, setIsRedirecting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!url) {
-            setError("Invalid link. Please request a new magic link.");
-        }
-    }, [url]);
+    // Derived during render: no effect needed to mirror url -> error.
+    const error = !url ? "Invalid link. Please request a new magic link." : null;
 
     const handleConfirm = () => {
         if (!url) return;

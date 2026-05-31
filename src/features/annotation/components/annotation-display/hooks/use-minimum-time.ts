@@ -3,10 +3,14 @@ import { useState, useEffect, useCallback } from "react";
 export const useMinimumTime = (seconds: number) => {
   const [timeLeft, setTimeLeft] = useState(seconds);
 
-  useEffect(() => {
-    // Reset timer when seconds changes (e.g. new article loaded)
+  // Reset timer when seconds changes (e.g. new article loaded).
+  // Adjusting state during render is React's recommended pattern over a
+  // set-state-in-effect; it resets before the interval effect runs.
+  const [prevSeconds, setPrevSeconds] = useState(seconds);
+  if (prevSeconds !== seconds) {
+    setPrevSeconds(seconds);
     setTimeLeft(seconds);
-  }, [seconds]);
+  }
 
   useEffect(() => {
     if (timeLeft <= 0) return;

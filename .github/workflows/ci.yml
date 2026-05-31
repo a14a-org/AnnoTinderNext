@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    # Hard gate: every step must pass. No continue-on-error anywhere.
+    env:
+      # LOCAL throwaway SQLite test DB only — never a real/remote database.
+      DATABASE_URL: "file:./test.db"
+      AUTH_SECRET: "ci-test-secret-not-a-real-secret"
+      EMAIL_FROM: "noreply@ci.local"
+      RESEND_API_KEY: "re_ci_placeholder"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Generate Prisma client (app, postgres schema)
+        run: yarn prisma generate
+
+      # Provision the LOCAL SQLite test DB (prisma db push) + test client.
+      - name: Provision local SQLite test DB
+        run: yarn test:db:setup
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Typecheck
+        run: yarn tsc --noEmit
+
+      - name: Build
+        run: yarn build
+
+      - name: Unit + integration tests
+        run: yarn test:run
+
+      # Smoke: boot the production server against the local test DB and assert
+      # it responds on the sign-in page.
+      - name: Smoke test
+        run: |
+          yarn start &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/auth/signin > /dev/null; then
+              echo "Smoke OK: server responded on /auth/signin"
+              kill $SERVER_PID 2>/dev/null || true
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Smoke FAILED: server did not respond in time"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1

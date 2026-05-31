@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Reorder } from "framer-motion";
 import { Heart, Loader2, Play, ShieldCheck, Users } from "lucide-react";
@@ -42,9 +42,11 @@ const FormEditorPage = () => {
   const [showValidationAlert, setShowValidationAlert] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  const validateForm = () => {
-    if (!form) return true;
-    
+  // Pure validation computation — no state mutation. Returns the current
+  // issues/errors derived from form + title.
+  const computeValidation = () => {
+    if (!form) return { issues: [] as string[], generalErrors: [] as string[], isValid: true };
+
     const issues: string[] = [];
     const generalErrors: string[] = [];
 
@@ -52,7 +54,7 @@ const FormEditorPage = () => {
     if (!title || title.trim() === "") {
       generalErrors.push("Form is missing a title");
     }
-    
+
     form.questions.forEach((q) => {
       // Specific check for Welcome Screen title
       if (q.type === "WELCOME_SCREEN") {
@@ -91,17 +93,43 @@ const FormEditorPage = () => {
       generalErrors.push(`${issues.length} ${issues.length === 1 ? "question is" : "questions are"} incomplete`);
     }
 
-    setInvalidQuestions(issues);
-    setValidationErrors(generalErrors);
-    return issues.length === 0 && generalErrors.length === 0;
+    return {
+      issues,
+      generalErrors,
+      isValid: issues.length === 0 && generalErrors.length === 0,
+    };
   };
 
-  // Re-validate when form updates if alert is visible
-  useEffect(() => {
-    if (showValidationAlert) {
-      validateForm();
-    }
-  }, [form, title, showValidationAlert]);
+  // Re-validate while the alert is visible by adjusting state during render
+  // (React's recommended alternative to the previous set-state-in-effect).
+  // Tracks the inputs that the old effect depended on (form, title, alert
+  // visibility) and refreshes the stored issues/errors when they change.
+  // When the alert is dismissed, the last computed values are retained — exactly
+  // as the previous implementation left them in state.
+  const [validationDeps, setValidationDeps] = useState<{
+    form: typeof form;
+    title: string;
+    showValidationAlert: boolean;
+  }>({ form, title, showValidationAlert });
+  if (
+    showValidationAlert &&
+    (validationDeps.form !== form ||
+      validationDeps.title !== title ||
+      validationDeps.showValidationAlert !== showValidationAlert)
+  ) {
+    setValidationDeps({ form, title, showValidationAlert });
+    const result = computeValidation();
+    setInvalidQuestions(result.issues);
+    setValidationErrors(result.generalErrors);
+  } else if (
+    validationDeps.form !== form ||
+    validationDeps.title !== title ||
+    validationDeps.showValidationAlert !== showValidationAlert
+  ) {
+    // Keep dep tracking current even when the alert is hidden so we only react
+    // to changes that occur while it is visible.
+    setValidationDeps({ form, title, showValidationAlert });
+  }
 
   const handlePublishClick = () => {
     if (isPublished) {
@@ -110,8 +138,10 @@ const FormEditorPage = () => {
       return;
     }
 
-    const isValid = validateForm();
-    if (isValid) {
+    const result = computeValidation();
+    setInvalidQuestions(result.issues);
+    setValidationErrors(result.generalErrors);
+    if (result.isValid) {
       togglePublish();
     } else {
       setShowValidationAlert(true);

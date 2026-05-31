@@ -32,6 +32,29 @@ export const QuestionCard = ({
   const [description, setDescription] = useState(question.description || "");
   const [options, setOptions] = useState(question.options || []);
 
+  // Mirror incoming props into local state by adjusting state during render
+  // (React's recommended alternative to set-state-in-effect). Tracks the last
+  // prop seen and resets local state when the prop changes externally.
+  const [prevTitle, setPrevTitle] = useState(question.title);
+  if (prevTitle !== question.title) {
+    setPrevTitle(question.title);
+    setTitle(question.title);
+  }
+
+  const nextDescription = question.description || "";
+  const [prevDescription, setPrevDescription] = useState(nextDescription);
+  if (prevDescription !== nextDescription) {
+    setPrevDescription(nextDescription);
+    setDescription(nextDescription);
+  }
+
+  const nextOptions = question.options || [];
+  const [prevOptions, setPrevOptions] = useState(question.options);
+  if (prevOptions !== question.options) {
+    setPrevOptions(question.options);
+    setOptions(nextOptions);
+  }
+
   const titleInputRef = useRef<HTMLInputElement>(null);
   const optionInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -39,18 +62,6 @@ export const QuestionCard = ({
   useEffect(() => {
     optionInputRefs.current = optionInputRefs.current.slice(0, options.length);
   }, [options.length]);
-
-  useEffect(() => {
-    setTitle(question.title);
-  }, [question.title]);
-
-  useEffect(() => {
-    setDescription(question.description || "");
-  }, [question.description]);
-
-  useEffect(() => {
-    setOptions(question.options || []);
-  }, [question.options]);
 
   // Auto-focus the first invalid field when the card is selected and has errors
   useEffect(() => {
