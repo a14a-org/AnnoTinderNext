@@ -301,8 +301,20 @@ export const POST = async (
         );
       }
 
-      // Select one random available job set
-      const selectedJobSet = shuffleArray(availableJobSets)[0];
+      // Prioritise the least-annotated job sets — total annotations across ALL
+      // demographic groups, per Zilin's request to fill thin coverage "regardless of
+      // ethnic background" — so each new participant tops up a coverage gap instead of
+      // landing at random. Shuffle first so equally-covered sets break ties randomly;
+      // Array.prototype.sort is stable, so the shuffled order is preserved within a
+      // coverage tier. This also avoids the corrupt high-count outlier set, whose huge
+      // total sorts it last.
+      const totalCoverage = (counts: Record<string, number>) =>
+        Object.values(counts).reduce((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
+      const selectedJobSet = shuffleArray(availableJobSets).sort(
+        (a, b) =>
+          totalCoverage(parseQuotaCounts(a.quotaCounts)) -
+          totalCoverage(parseQuotaCounts(b.quotaCounts))
+      )[0];
       assignedArticles = selectedJobSet.articles;
       assignedIds = selectedJobSet.articles.map((a) => a.id);
       assignedJobSetId = selectedJobSet.id;
