@@ -212,45 +212,16 @@ export const POST = async (
       );
     }
 
-    // Conditional follow-up rule for the AAVA Nederlands + hasOtherEthnicBackground flow.
-    // When a participant self-reports "Nederlands" we ask whether they additionally have
-    // a non-Dutch ethnic background. "Nee" screens out; "Ja, namelijk: <X>" lets them
-    // through, treated as minority for quota purposes. The original Nederlands answer is
-    // preserved in the stored ethnicity column so the data stays auditable.
-    const ethnicityNormalized = (demographicData.ethnicity ?? "").toLowerCase().trim();
-    const followUp = (demographicData.hasOtherEthnicBackground ?? "").trim();
-    const classificationData = { ...demographicData };
-    if (ethnicityNormalized === "nederlands") {
-      if (followUp === "Nee") {
-        await db.annotationSession.update({
-          where: { id: session.id },
-          data: {
-            gender: demographicData.gender,
-            ethnicity: demographicData.ethnicity,
-            ageRange: demographicData.ageRange,
-            ...richDemographicFields(demographicData),
-            status: "screened_out",
-          },
-        });
-        return NextResponse.json(
-          {
-            assigned: false,
-            reason: "no_matching_group",
-            message: "Participant does not match any demographic group",
-            returnUrl: buildPanelRedirectFromForm(form, session, "screenout"),
-          },
-          { status: 409 }
-        );
-      }
-      if (followUp.startsWith("Ja, namelijk:")) {
-        // Override ethnicity for classification only; the DB still records "Nederlands".
-        // "Anders" matches the minority group via the existing quotaSettings configuration.
-        classificationData.ethnicity = "Anders";
-      }
-    }
-
-    // Classify participant into a demographic group
-    const demographicGroup = classifyParticipant(classificationData, quotaSettings);
+    // No demographic screenout: for the native-Dutch top-up wave every consenting
+    // participant who passes the age gate is admitted. Quota settings use a single
+    // catch-all group covering every ethnicity option, so classifyParticipant()
+    // always matches and the no-matching-group branch below is an unreachable safety
+    // net (it would only trigger if ethnicity were somehow missing). The earlier
+    // AAVA-specific "Nederlands → hasOtherEthnicBackground → Nee" screenout is gone,
+    // but the hasOtherEthnicBackground follow-up question is KEPT: its answer is
+    // still collected as demographic data via richDemographicFields() above, it just
+    // no longer gates admission (both "Nee" and "Ja, namelijk: X" now continue).
+    const demographicGroup = classifyParticipant(demographicData, quotaSettings);
 
     if (!demographicGroup) {
       // No matching group found - screen out
@@ -330,8 +301,27 @@ export const POST = async (
         );
       }
 
-      // Select one random available job set
-      const selectedJobSet = shuffleArray(availableJobSets)[0];
+      // Bias new participants toward the least-annotated job sets — total annotations
+      // across ALL demographic groups, per Zilin's request to fill thin coverage
+      // "regardless of ethnic background" — WITHOUT herding under concurrent traffic.
+      // quotaCounts only updates on completion (see /session/complete), so simultaneous
+      // assigns see stale counts; a deterministic global-minimum pick would funnel a
+      // whole Motivaction burst onto a single set. Instead use "power of D choices":
+      // sample a handful of random available sets and take the least-covered of the
+      // sample. Thin sets still win whenever they're sampled, but different participants
+      // draw different samples, so concurrent assigns can't all converge on one set
+      // (herding is capped at ~SAMPLE_SIZE/total per burst). The corrupt high-count
+      // outlier set is effectively never chosen (it can't be the min of any sample).
+      const totalCoverage = (counts: Record<string, number>) =>
+        Object.values(counts).reduce((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
+      const SAMPLE_SIZE = 10;
+      const selectedJobSet = shuffleArray(availableJobSets)
+        .slice(0, SAMPLE_SIZE)
+        .sort(
+          (a, b) =>
+            totalCoverage(parseQuotaCounts(a.quotaCounts)) -
+            totalCoverage(parseQuotaCounts(b.quotaCounts))
+        )[0];
       assignedArticles = selectedJobSet.articles;
       assignedIds = selectedJobSet.articles.map((a) => a.id);
       assignedJobSetId = selectedJobSet.id;
