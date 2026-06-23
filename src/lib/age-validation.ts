@@ -36,11 +36,18 @@ export const calculateAgeFromMonthYear = (monthYear: string): number => {
 }
 
 /**
- * Check if a person is under 18 based on their birth month/year
+ * Check if a person is under 18 based on their birth month/year.
+ *
+ * An incomplete date (only month or only year selected, e.g. "06-" or "-1990")
+ * is NOT treated as under-18: `calculateAgeFromMonthYear` returns 0 for such
+ * input, and 0 < 18 would wrongly screen out a valid adult who simply left one
+ * dropdown blank (a wasted paid panel complete). We only screen out when a
+ * COMPLETE date actually computes to an age below 18.
  */
 export const isUnder18 = (monthYear: string): boolean => {
-  const age = calculateAgeFromMonthYear(monthYear)
-  return age < 18
+  const [month, year] = (monthYear ?? '').split('-')
+  if (!month || !year) return false // incomplete date → can't determine age → don't screen out
+  return calculateAgeFromMonthYear(monthYear) < 18
 }
 
 /**

@@ -150,7 +150,13 @@ export const DemographicsDisplay = ({
     if (!currentField) return false
     if (currentField.type === 'text' && currentAnswer) return true
     if (currentField.type === 'slider') return true
-    if (currentField.type === 'month_year' && currentAnswer) return true
+    // month_year is "answered" only when BOTH month and year are selected. A
+    // half-filled value ("06-" or "-1990") must not let the participant advance,
+    // otherwise it reaches the age gate as an unparseable date.
+    if (currentField.type === 'month_year') {
+      const [m, y] = (currentAnswer ?? '-').split('-')
+      return Boolean(m && y)
+    }
     if (showOtherInput && otherText.trim()) return true
     return false
   }, [currentField, currentAnswer, showOtherInput, otherText])
