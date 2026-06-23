@@ -301,20 +301,27 @@ export const POST = async (
         );
       }
 
-      // Prioritise the least-annotated job sets — total annotations across ALL
-      // demographic groups, per Zilin's request to fill thin coverage "regardless of
-      // ethnic background" — so each new participant tops up a coverage gap instead of
-      // landing at random. Shuffle first so equally-covered sets break ties randomly;
-      // Array.prototype.sort is stable, so the shuffled order is preserved within a
-      // coverage tier. This also avoids the corrupt high-count outlier set, whose huge
-      // total sorts it last.
+      // Bias new participants toward the least-annotated job sets — total annotations
+      // across ALL demographic groups, per Zilin's request to fill thin coverage
+      // "regardless of ethnic background" — WITHOUT herding under concurrent traffic.
+      // quotaCounts only updates on completion (see /session/complete), so simultaneous
+      // assigns see stale counts; a deterministic global-minimum pick would funnel a
+      // whole Motivaction burst onto a single set. Instead use "power of D choices":
+      // sample a handful of random available sets and take the least-covered of the
+      // sample. Thin sets still win whenever they're sampled, but different participants
+      // draw different samples, so concurrent assigns can't all converge on one set
+      // (herding is capped at ~SAMPLE_SIZE/total per burst). The corrupt high-count
+      // outlier set is effectively never chosen (it can't be the min of any sample).
       const totalCoverage = (counts: Record<string, number>) =>
         Object.values(counts).reduce((sum, n) => sum + (typeof n === "number" ? n : 0), 0);
-      const selectedJobSet = shuffleArray(availableJobSets).sort(
-        (a, b) =>
-          totalCoverage(parseQuotaCounts(a.quotaCounts)) -
-          totalCoverage(parseQuotaCounts(b.quotaCounts))
-      )[0];
+      const SAMPLE_SIZE = 10;
+      const selectedJobSet = shuffleArray(availableJobSets)
+        .slice(0, SAMPLE_SIZE)
+        .sort(
+          (a, b) =>
+            totalCoverage(parseQuotaCounts(a.quotaCounts)) -
+            totalCoverage(parseQuotaCounts(b.quotaCounts))
+        )[0];
       assignedArticles = selectedJobSet.articles;
       assignedIds = selectedJobSet.articles.map((a) => a.id);
       assignedJobSetId = selectedJobSet.id;
