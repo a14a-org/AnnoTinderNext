@@ -284,12 +284,21 @@ export async function GET(
       // Status
       status: session.status,
 
-      // Demographics
+      // Demographics, incl. the rich individual-difference fields collected on the
+      // demographics step (null for legacy sessions that predate their persistence).
       demographics: {
         gender: session.gender,
         ethnicity: session.ethnicity,
         ageRange: session.ageRange,
         demographicGroup: session.demographicGroup,
+        birthDate: session.birthDate,
+        education: session.education,
+        politicalOrientation: session.politicalOrientation,
+        religion: session.religion,
+        feelingGeneral: session.feelingGeneral,
+        feelingOtherEthnicity: session.feelingOtherEthnicity,
+        discriminationExperience: session.discriminationExperience,
+        hasOtherEthnicBackground: session.hasOtherEthnicBackground,
       },
 
       // Progress
@@ -340,6 +349,14 @@ export async function GET(
           "ethnicity",
           "ageRange",
           "demographicGroup",
+          "birthDate",
+          "education",
+          "politicalOrientation",
+          "religion",
+          "feelingGeneral",
+          "feelingOtherEthnicity",
+          "discriminationExperience",
+          "hasOtherEthnicBackground",
           "articlesRequired",
           "articlesCompleted",
           "annotationsSaved",
@@ -360,6 +377,16 @@ export async function GET(
             row.demographics.ethnicity || "",
             row.demographics.ageRange || "",
             row.demographics.demographicGroup || "",
+            // Raw values (not `|| ""`) so a valid 0 on the slider fields is preserved;
+            // escapeCsv renders null/undefined as an empty cell.
+            row.demographics.birthDate,
+            row.demographics.education,
+            row.demographics.politicalOrientation,
+            row.demographics.religion,
+            row.demographics.feelingGeneral,
+            row.demographics.feelingOtherEthnicity,
+            row.demographics.discriminationExperience,
+            row.demographics.hasOtherEthnicBackground,
             row.progress.articlesRequired,
             row.progress.articlesCompleted,
             row.progress.annotationsSaved,
